@@ -11,7 +11,10 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -221,7 +224,7 @@ func (u *UserHandler) RefreshToken(ctx *gin.Context) (ginx.Result, error) {
 }
 
 func (u *UserHandler) UploadAvatar(ctx *gin.Context, uc jwtware.UserClaims) (ginx.Result, error) {
-	file, err := ctx.FormFile("avatar") // 前端表单字段名应为 'avatar'  multipart/form-data
+	file, err := ctx.FormFile("avatar") // 前端表单字段名应为 'avatar'
 	if err != nil {
 		return ginx.Result{
 			Code: errs.UserInvalidInput,
@@ -229,10 +232,48 @@ func (u *UserHandler) UploadAvatar(ctx *gin.Context, uc jwtware.UserClaims) (gin
 		}, err
 	}
 
-	// 调用 service 层处理业务逻辑
-	avatarPath, err := u.userSvc.UploadAvatar(ctx.Request.Context(), uc.Uid, file)
+	// 1. 生成新文件的唯一路径
+	ext := filepath.Ext(file.Filename)
+	newPath := filepath.Join("uploads", "avatars", uuid.New().String()+ext)
+
+	// 2. 创建目录
+	if err := os.MkdirAll(filepath.Dir(newPath), os.ModePerm); err != nil {
+		u.log.Error("创建头像目录失败", logger.Error(err))
+		return ginx.Result{Code: http.StatusInternalServerError, Msg: "系统错误"}, err
+	}
+
+	// 3. 保存文件
+	if err := ctx.SaveUploadedFile(file, newPath); err != nil {
+		u.log.Error("保存头像文件失败", logger.Error(err))
+		return ginx.Result{
+			Code: http.StatusInternalServerError,
+			Msg:  "系统错误",
+		}, err
+	}
+
+	// 4. 调用 service 层处理业务逻辑
+	err = u.userSvc.UpdateAvatarPath(ctx.Request.Context(), uc.Uid, newPath)
 	if err != nil {
-		u.log.Error("头像上传失败", logger.Error(err))
+		// 如果业务逻辑处理失败（例如数据库更新失败），则删除刚刚保存的文件，进行“回滚”
+		// *** 使用绝对路径进行删除，增强代码的健壮性 ***
+		absNewPath, absErr := filepath.Abs(newPath)
+		if absErr != nil {
+			// 如果获取绝对路径失败，记录一个警告，然后尝试用原路径删除
+			u.log.Warn("获取新头像绝对路径失败，将尝试使用相对路径删除",
+				logger.Error(absErr),
+				logger.String("new_avatar_path", newPath),
+			)
+			absNewPath = newPath // 回退到使用相对路径
+		}
+
+		if removeErr := os.Remove(absNewPath); removeErr != nil {
+			u.log.Warn("数据库更新失败进行回滚操作,但是删除新头像失败",
+				logger.Error(removeErr),
+				logger.String("new_avatar_path", absNewPath),
+			)
+		}
+
+		u.log.Error("更新用户头像业务逻辑失败", logger.Error(err))
 		return ginx.Result{
 			Code: http.StatusInternalServerError,
 			Msg:  "系统错误",
@@ -243,7 +284,7 @@ func (u *UserHandler) UploadAvatar(ctx *gin.Context, uc jwtware.UserClaims) (gin
 		Code: http.StatusOK,
 		Msg:  "头像上传成功",
 		Data: gin.H{
-			"avatar_url": avatarPath, // 返回头像路径
+			"avatar_url": newPath, // 返回新的头像路径
 		},
 	}, nil
 }
