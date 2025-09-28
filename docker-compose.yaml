@@ -1,0 +1,42 @@
+networks:
+  net01:
+    driver: bridge
+
+services:
+
+#----------------------------------------------------------------------------------------------
+  #mysql环境# https://github.com/bitnami/containers/tree/main/bitnami/mysql#how-to-use-this-image
+  # todo sudo rm -rf mysql ; sudo mkdir -p mysql/data mysql/conf  && sudo chown -R 1001:1001 mysql &&  sudo docker pull registry.cn-guangzhou.aliyuncs.com/dbinggo-bitnami/mysql:8.0 && sudo docker tag registry.cn-guangzhou.aliyuncs.com/dbinggo-bitnami/mysql:8.0 bitnami/mysql:8.0
+  mysql:
+    image: bitnami/mysql:8.0  # sudo docker pull registry.cn-guangzhou.aliyuncs.com/dbinggo-bitnami/mysql:8.0 && sudo docker tag registry.cn-guangzhou.aliyuncs.com/dbinggo-bitnami/mysql:8.0 bitnami/mysql:8.0
+    container_name: mysql # 强制指定容器的名称为 mysql
+    hostname: mysql # 设置容器内部的主机名为 mysql
+    restart: unless-stopped
+#    privileged: true # 特权模式
+    ports:
+      - "3306:3306"
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: root
+#    volumes:
+#      - "./mysql/data:/bitnami/mysql/data" # sudo rm -rf mysql ; sudo mkdir mysql && sudo chown -R 1001:1001 mysql
+#      - "./mysql/conf:/opt/bitnami/mysql/conf"
+    networks:
+      - net01
+    healthcheck:
+      test: [ 'CMD', '/opt/bitnami/scripts/mysql/healthcheck.sh' ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+#----------------------------------------------------------------------------------------------
+  redis:
+    image: "bitnami/redis:latest"
+    container_name: redis # 强制指定容器的名称为 mysql
+    hostname: redis # 设置容器内部的主机名为 mysql
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - net01

@@ -1,0 +1,16 @@
+log:
+  level: "debug"
+  path: "./logs/archi.log"
+  max_size: 1  # 日志最大 1000 M
+  max_age: 3600   # 日志保留天数
+  max_backups: 5  # 最多保留 5 个备份文件
+
+mysql:
+  dsn: "root:root@tcp(127.0.0.1:3306)/archi?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  address: "127.0.0.1:6379"
+
+kafka:
+  addr:
+    - "localhost:9094"
