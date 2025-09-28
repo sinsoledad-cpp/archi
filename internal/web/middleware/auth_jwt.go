@@ -29,6 +29,13 @@ func NewJWTAuth(hdl jwtware.Handler) *JWTAuth {
 		hdl:         hdl,
 	}
 }
+
+func (j *JWTAuth) SetPublicPaths(paths ...string) {
+	for _, path := range paths {
+		j.publicPaths.Add(path)
+	}
+}
+
 func (j *JWTAuth) Middleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// 不需要校验

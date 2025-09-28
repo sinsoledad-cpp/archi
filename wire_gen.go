@@ -22,8 +22,8 @@ import (
 func InitApp() *App {
 	cmdable := ioc.InitRedis()
 	handler := jwt.NewRedisJWTHandler(cmdable)
-	v := ioc.InitGinMiddlewares(handler)
 	logger := ioc.InitLogger()
+	v := ioc.InitGinMiddlewares(handler, logger)
 	db := ioc.InitMySQL(logger)
 	userDAO := dao.NewGORMUserDAO(db)
 	userCache := cache.NewRedisUserCache(cmdable)

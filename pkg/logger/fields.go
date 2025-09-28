@@ -90,14 +90,14 @@ func TimeUnixMilli(val time.Time) Field {
 	return Field{Key: "time", Val: val.UnixMilli()}
 }
 
-func TimeUnixNano(val time.Time) Field {
+func TimeUnixNano(val time.Time) Field { //纳秒时间戳
 	return Field{Key: "time", Val: val.UnixNano()}
 }
 
-func TimeUnixMicros(val time.Time) Field {
+func TimeUnixMicros(val time.Time) Field { //微秒时间戳
 	return Field{Key: "time", Val: val.UnixMicro()}
 }
 
-func TimeUnix(val time.Time) Field {
+func TimeUnix(val time.Time) Field { //秒时间戳
 	return Field{Key: "time", Val: val.Unix()}
 }
