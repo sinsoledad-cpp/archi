@@ -2,10 +2,10 @@ package ioc
 
 import (
 	"archi/internal/web"
-	"archi/internal/web/middleware"
+	webmw "archi/internal/web/middleware"
 	"archi/internal/web/middleware/jwt"
 	"archi/pkg/ginx"
-	mdl "archi/pkg/ginx/middleware"
+	ginxmw "archi/pkg/ginx/middleware"
 	"archi/pkg/logger"
 	"context"
 	"github.com/gin-contrib/cors"
@@ -36,7 +36,7 @@ func InitGinMiddlewares(jwtHdl jwt.Handler, l logger.Logger) []gin.HandlerFunc {
 		MaxAge:           12 * time.Hour,                             // preflight 请求的缓存时间
 	})
 
-	logFn := func(ctx context.Context, al mdl.AccessLog) {
+	logFn := func(ctx context.Context, al ginxmw.AccessLog) {
 		fields := []logger.Field{
 			logger.String("path", al.Path),
 			logger.String("method", al.Method),
@@ -47,10 +47,10 @@ func InitGinMiddlewares(jwtHdl jwt.Handler, l logger.Logger) []gin.HandlerFunc {
 		}
 		l.Info("access log ", fields...)
 	}
-	accessLogMiddleware := mdl.NewAccessLogBuilder(logFn).AllowReqBody().AllowRespBody().Build()
+	accessLogMiddleware := ginxmw.NewAccessLogBuilder(logFn).AllowReqBody().AllowRespBody().Build()
 
 	return []gin.HandlerFunc{
-		middleware.NewJWTAuth(jwtHdl).Middleware(),
+		webmw.NewJWTAuth(jwtHdl).Middleware(),
 		corsMiddleware,
 		accessLogMiddleware,
 	}
