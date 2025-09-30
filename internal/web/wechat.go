@@ -40,8 +40,8 @@ func NewOAuth2WechatHandler(svc wechat.Service, hdl jwtware.Handler, userSvc ser
 	}
 }
 
-func (o *OAuth2WechatHandler) RegisterRoutes(server *gin.Engine) {
-	g := server.Group("/oauth2/wechat")
+func (o *OAuth2WechatHandler) RegisterRoutes(e *gin.Engine) {
+	g := e.Group("/oauth2/wechat")
 	g.GET("/authurl", ginx.Wrap(o.Auth2URL))
 	g.Any("/callback", ginx.Wrap(o.Callback))
 }

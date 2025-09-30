@@ -24,7 +24,7 @@ type DefaultCodeService struct {
 	smsSvc sms.Service
 }
 
-func NewCodeService(repo repository.CodeRepository, smsSvc sms.Service) CodeService {
+func NewDefaultCodeService(repo repository.CodeRepository, smsSvc sms.Service) CodeService {
 	return &DefaultCodeService{
 		repo:   repo,
 		smsSvc: smsSvc,

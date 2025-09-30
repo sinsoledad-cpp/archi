@@ -32,7 +32,7 @@ func InitApp() *App {
 	codeCache := cache.NewRedisCodeCache(cmdable)
 	codeRepository := repository.NewCachedCodeRepository(codeCache)
 	smsService := ioc.InitSMSService()
-	codeService := service.NewCodeService(codeRepository, smsService)
+	codeService := service.NewDefaultCodeService(codeRepository, smsService)
 	userHandler := web.NewUserHandler(logger, userService, codeService, handler)
 	engine := ioc.InitWebEngine(v, logger, userHandler)
 	app := &App{
@@ -47,4 +47,4 @@ var thirdParty = wire.NewSet(ioc.InitLogger, ioc.InitMySQL, ioc.InitRedis)
 
 var userSvc = wire.NewSet(cache.NewRedisUserCache, dao.NewGORMUserDAO, repository.NewCachedUserRepository, service.NewUserService)
 
-var codeSvc = wire.NewSet(cache.NewRedisCodeCache, repository.NewCachedCodeRepository, ioc.InitSMSService, service.NewCodeService)
+var codeSvc = wire.NewSet(cache.NewRedisCodeCache, repository.NewCachedCodeRepository, ioc.InitSMSService, service.NewDefaultCodeService)

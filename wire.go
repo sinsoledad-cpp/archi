@@ -30,7 +30,7 @@ var codeSvc = wire.NewSet(
 	cache.NewRedisCodeCache,
 	repository.NewCachedCodeRepository,
 	ioc.InitSMSService,
-	service.NewCodeService,
+	service.NewDefaultCodeService,
 )
 
 //var wechatSvc = wire.NewSet(
