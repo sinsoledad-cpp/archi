@@ -60,7 +60,7 @@ func (i *interactiveService) GetByIds(ctx context.Context, biz string, ids []int
 	}
 	res := make(map[int64]domain.Interactive, len(intrs))
 	for _, intr := range intrs {
-		res[intr.BizId] = intr
+		res[intr.BizID] = intr
 	}
 	return res, nil
 }

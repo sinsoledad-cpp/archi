@@ -144,7 +144,7 @@ func (c *CachedInteractiveRepository) GetByIds(ctx context.Context, biz string, 
 
 func (c *CachedInteractiveRepository) toDomain(ie dao.Interactive) domain.Interactive {
 	return domain.Interactive{
-		BizId:      ie.BizId,
+		BizID:      ie.BizId,
 		ReadCnt:    ie.ReadCnt,
 		LikeCnt:    ie.LikeCnt,
 		CollectCnt: ie.CollectCnt,
