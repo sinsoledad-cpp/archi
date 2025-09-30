@@ -289,10 +289,10 @@ func (a *ArticleHandler) PubDetail(ctx *gin.Context, uc jwt.UserClaims) (ginx.Re
 	// 2. 如果你不想，你就用 ctx
 	//newCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 	//defer cancel()
-	//er := a.interSvc.IncrReadCnt(newCtx, a.biz, art.Id)
+	//er := a.interSvc.IncrReadCnt(newCtx, a.biz, art.ID)
 	//if er != nil {
 	//	a.l.Error("更新阅读数失败",
-	//		logger.Int64("aid", art.Id),
+	//		logger.Int64("aid", art.ID),
 	//		logger.Error(err))
 	//}
 	//}()

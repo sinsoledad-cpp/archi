@@ -118,7 +118,7 @@ func (a *GORMArticleDAO) SyncV1(ctx context.Context, art Article) (int64, error)
 	defer tx.Rollback()
 
 	var (
-		id  = art.Id
+		id  = art.ID
 		err error
 	)
 	dao := NewGORMArticleDAO(tx)
@@ -130,7 +130,7 @@ func (a *GORMArticleDAO) SyncV1(ctx context.Context, art Article) (int64, error)
 	if err != nil {
 		return 0, err
 	}
-	art.Id = id
+	art.ID = id
 	now := time.Now().UnixMilli()
 	pubArt := PublishedArticle(art)
 	pubArt.Ctime = now
