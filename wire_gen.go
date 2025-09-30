@@ -34,7 +34,16 @@ func InitApp() *App {
 	smsService := ioc.InitSMSService()
 	codeService := service.NewDefaultCodeService(codeRepository, smsService)
 	userHandler := web.NewUserHandler(logger, userService, codeService, handler)
-	engine := ioc.InitWebEngine(v, logger, userHandler)
+	articleDAO := dao.NewGORMArticleDAO(db)
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleRepository := repository.NewCachedArticleRepository(articleDAO, userRepository, articleCache)
+	articleService := service.NewDefaultArticleService(articleRepository)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service.NewDefaultInteractiveService(interactiveRepository)
+	articleHandler := web.NewArticleHandler(articleService, interactiveService, logger)
+	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler)
 	app := &App{
 		engine: engine,
 	}
@@ -48,3 +57,7 @@ var thirdParty = wire.NewSet(ioc.InitLogger, ioc.InitMySQL, ioc.InitRedis)
 var userSvc = wire.NewSet(cache.NewRedisUserCache, dao.NewGORMUserDAO, repository.NewCachedUserRepository, service.NewUserService)
 
 var codeSvc = wire.NewSet(cache.NewRedisCodeCache, repository.NewCachedCodeRepository, ioc.InitSMSService, service.NewDefaultCodeService)
+
+var articleSvc = wire.NewSet(cache.NewRedisArticleCache, dao.NewGORMArticleDAO, repository.NewCachedArticleRepository, service.NewDefaultArticleService)
+
+var interactiveSvc = wire.NewSet(cache.NewRedisInteractiveCache, dao.NewGORMInteractiveDAO, repository.NewCachedInteractiveRepository, service.NewDefaultInteractiveService)

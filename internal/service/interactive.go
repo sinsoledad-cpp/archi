@@ -16,24 +16,30 @@ type InteractiveService interface {
 	Get(ctx context.Context, biz string, id int64, uid int64) (domain.Interactive, error)
 	GetByIds(ctx context.Context, biz string, ids []int64) (map[int64]domain.Interactive, error)
 }
-type interactiveService struct {
+type DefaultInteractiveService struct {
 	repo repository.InteractiveRepository
 }
 
-func (i *interactiveService) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
+func NewDefaultInteractiveService(repo repository.InteractiveRepository) InteractiveService {
+	return &DefaultInteractiveService{
+		repo: repo,
+	}
+}
+
+func (i *DefaultInteractiveService) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
 	return i.repo.IncrReadCnt(ctx, biz, bizId)
 }
-func (i *interactiveService) Like(c context.Context, biz string, id int64, uid int64) error {
+func (i *DefaultInteractiveService) Like(c context.Context, biz string, id int64, uid int64) error {
 	return i.repo.IncrLike(c, biz, id, uid)
 }
 
-func (i *interactiveService) CancelLike(c context.Context, biz string, id int64, uid int64) error {
+func (i *DefaultInteractiveService) CancelLike(c context.Context, biz string, id int64, uid int64) error {
 	return i.repo.DecrLike(c, biz, id, uid)
 }
-func (i *interactiveService) Collect(ctx context.Context, biz string, bizId, cid, uid int64) error {
+func (i *DefaultInteractiveService) Collect(ctx context.Context, biz string, bizId, cid, uid int64) error {
 	return i.repo.AddCollectionItem(ctx, biz, bizId, cid, uid)
 }
-func (i *interactiveService) Get(ctx context.Context, biz string, id int64, uid int64) (domain.Interactive, error) {
+func (i *DefaultInteractiveService) Get(ctx context.Context, biz string, id int64, uid int64) (domain.Interactive, error) {
 	intr, err := i.repo.Get(ctx, biz, id)
 	if err != nil {
 		return domain.Interactive{}, err
@@ -53,7 +59,7 @@ func (i *interactiveService) Get(ctx context.Context, biz string, id int64, uid 
 }
 
 // GetByIds 用于排行榜的，所以不需要是否点赞和收藏字段
-func (i *interactiveService) GetByIds(ctx context.Context, biz string, ids []int64) (map[int64]domain.Interactive, error) {
+func (i *DefaultInteractiveService) GetByIds(ctx context.Context, biz string, ids []int64) (map[int64]domain.Interactive, error) {
 	intrs, err := i.repo.GetByIds(ctx, biz, ids)
 	if err != nil {
 		return nil, err

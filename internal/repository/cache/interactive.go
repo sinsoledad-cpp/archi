@@ -31,6 +31,12 @@ type RedisInteractiveCache struct {
 	client redis.Cmdable
 }
 
+func NewRedisInteractiveCache(client redis.Cmdable) InteractiveCache {
+	return &RedisInteractiveCache{
+		client: client,
+	}
+}
+
 func (i *RedisInteractiveCache) IncrReadCntIfPresent(ctx context.Context, biz string, bizId int64) error {
 	key := i.key(biz, bizId)
 	// 不是特别需要处理 res

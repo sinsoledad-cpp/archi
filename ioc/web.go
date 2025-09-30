@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger, userHdl *web.UserHandler) *gin.Engine {
+func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger, userHdl *web.UserHandler, artHdl *web.ArticleHandler) *gin.Engine {
 	ginx.SetLogger(l)
 	gin.ForceConsoleColor()
 	engine := gin.Default()
@@ -21,6 +21,7 @@ func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger, userHdl *web.
 	engine.Use(middlewares...)
 	userHdl.RegisterRoutes(engine)
 	//wechatHdl.RegisterRoutes(engine)//, wechatHdl *web.OAuth2WechatHandler
+	artHdl.RegisterRoutes(engine)
 	return engine
 }
 

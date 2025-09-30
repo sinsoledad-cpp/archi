@@ -60,7 +60,7 @@ type GORMInteractiveDAO struct {
 	db *gorm.DB
 }
 
-func NewGORMInteractiveDAO(db *gorm.DB) *GORMInteractiveDAO {
+func NewGORMInteractiveDAO(db *gorm.DB) InteractiveDAO {
 	return &GORMInteractiveDAO{db: db}
 }
 

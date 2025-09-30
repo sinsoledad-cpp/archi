@@ -29,6 +29,14 @@ type CachedInteractiveRepository struct {
 	l     logger.Logger
 }
 
+func NewCachedInteractiveRepository(dao dao.InteractiveDAO, cache cache.InteractiveCache, l logger.Logger) InteractiveRepository {
+	return &CachedInteractiveRepository{
+		dao:   dao,
+		cache: cache,
+		l:     l,
+	}
+}
+
 func (c *CachedInteractiveRepository) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
 	err := c.dao.IncrReadCnt(ctx, biz, bizId)
 	if err != nil {

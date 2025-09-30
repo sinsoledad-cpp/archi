@@ -33,6 +33,20 @@ var codeSvc = wire.NewSet(
 	service.NewDefaultCodeService,
 )
 
+var articleSvc = wire.NewSet(
+	cache.NewRedisArticleCache,
+	dao.NewGORMArticleDAO,
+	repository.NewCachedArticleRepository,
+	service.NewDefaultArticleService,
+)
+
+var interactiveSvc = wire.NewSet(
+	cache.NewRedisInteractiveCache,
+	dao.NewGORMInteractiveDAO,
+	repository.NewCachedInteractiveRepository,
+	service.NewDefaultInteractiveService,
+)
+
 //var wechatSvc = wire.NewSet(
 //	ioc.InitWechatService,
 //)
@@ -44,10 +58,13 @@ func InitApp() *App {
 		userSvc,
 		codeSvc,
 		//wechatSvc,
+		articleSvc,
+		interactiveSvc,
 
 		jwt.NewRedisJWTHandler,
 		web.NewUserHandler,
 		//web.NewOAuth2WechatHandler,
+		web.NewArticleHandler,
 
 		ioc.InitWebEngine,
 		ioc.InitGinMiddlewares,

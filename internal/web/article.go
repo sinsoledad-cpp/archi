@@ -23,6 +23,15 @@ type ArticleHandler struct {
 	biz      string
 }
 
+func NewArticleHandler(artSvc service.ArticleService, interSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
+	return &ArticleHandler{
+		ArtSvc:   artSvc,
+		interSvc: interSvc,
+		l:        l,
+		biz:      "article",
+	}
+}
+
 func (a *ArticleHandler) RegisterRoutes(e *gin.Engine) {
 	g := e.Group("/articles")
 
