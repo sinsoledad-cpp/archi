@@ -14,7 +14,7 @@ type RedisRankingCache struct {
 	expiration time.Duration
 }
 
-func NewRedisRankingCache(client redis.Cmdable) RankingCache {
+func NewRedisRankingCache(client redis.Cmdable) *RedisRankingCache {
 	return &RedisRankingCache{
 		client:     client,
 		key:        "ranking:top_n",

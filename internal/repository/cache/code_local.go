@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru" // LRU 是 "Least Recently Used" 的缩写，意为“最近最少使用”。
 	"sync"
 	"time"
 )
