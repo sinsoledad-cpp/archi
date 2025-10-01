@@ -11,11 +11,17 @@ type RankingRepository interface {
 	ReplaceTopN(ctx context.Context, arts []domain.Article) error
 }
 type CachedRankingRepository struct {
-	cache cache.RankingCache
+	//cache cache.RankingCache
 
-	// 下面是给 v1 用的
 	redisCache *cache.RedisRankingCache
 	localCache *cache.LocalRankingCache
+}
+
+func NewCachedRankingRepository(redisCache *cache.RedisRankingCache, localCache *cache.LocalRankingCache) RankingRepository {
+	return &CachedRankingRepository{
+		redisCache: redisCache,
+		localCache: localCache,
+	}
 }
 
 func (repo *CachedRankingRepository) GetTopN(ctx context.Context) ([]domain.Article, error) {

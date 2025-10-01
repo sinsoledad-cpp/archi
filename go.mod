@@ -16,6 +16,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
+	github.com/gotomicro/redis-lock v0.0.3
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/lithammer/shortuuid/v4 v4.2.0
 	github.com/mojocn/base64Captcha v1.3.8
