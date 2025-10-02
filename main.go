@@ -9,6 +9,12 @@ func main() {
 	setting.InitViper()
 
 	app := InitApp()
+
+	app.cron.Start()
+	defer func() {
+		<-app.cron.Stop().Done()
+	}()
+
 	server := app.engine
 	err := server.Run(":8080")
 	if err != nil {

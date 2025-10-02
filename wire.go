@@ -17,6 +17,7 @@ var thirdParty = wire.NewSet(
 	ioc.InitLogger,
 	ioc.InitMySQL,
 	ioc.InitRedis,
+	ioc.InitRlockClient,
 )
 
 var userSvc = wire.NewSet(
@@ -47,6 +48,12 @@ var interactiveSvc = wire.NewSet(
 	service.NewDefaultInteractiveService,
 )
 
+var rankingSvc = wire.NewSet(
+	cache.NewRedisRankingCache,
+	repository.NewCachedRankingRepository,
+	service.NewBatchRankingService,
+)
+
 //var wechatSvc = wire.NewSet(
 //	ioc.InitWechatService,
 //)
@@ -60,11 +67,15 @@ func InitApp() *App {
 		//wechatSvc,
 		articleSvc,
 		interactiveSvc,
+		rankingSvc,
 
 		jwt.NewRedisJWTHandler,
 		web.NewUserHandler,
 		//web.NewOAuth2WechatHandler,
 		web.NewArticleHandler,
+
+		ioc.InitRankingJob,
+		ioc.InitJobs,
 
 		ioc.InitWebEngine,
 		ioc.InitGinMiddlewares,

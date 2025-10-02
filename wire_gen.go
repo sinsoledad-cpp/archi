@@ -44,15 +44,20 @@ func InitApp() *App {
 	interactiveService := service.NewDefaultInteractiveService(interactiveRepository)
 	articleHandler := web.NewArticleHandler(articleService, interactiveService, logger)
 	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler)
+	rankingService := service.NewBatchRankingService(interactiveService, articleService)
+	client := ioc.InitRlockClient(cmdable)
+	rankingJob := ioc.InitRankingJob(rankingService, client, logger)
+	cron := ioc.InitJobs(logger, rankingJob)
 	app := &App{
 		engine: engine,
+		cron:   cron,
 	}
 	return app
 }
 
 // wire.go:
 
-var thirdParty = wire.NewSet(ioc.InitLogger, ioc.InitMySQL, ioc.InitRedis)
+var thirdParty = wire.NewSet(ioc.InitLogger, ioc.InitMySQL, ioc.InitRedis, ioc.InitRlockClient)
 
 var userSvc = wire.NewSet(cache.NewRedisUserCache, dao.NewGORMUserDAO, repository.NewCachedUserRepository, service.NewUserService)
 
@@ -61,3 +66,5 @@ var codeSvc = wire.NewSet(cache.NewRedisCodeCache, repository.NewCachedCodeRepos
 var articleSvc = wire.NewSet(cache.NewRedisArticleCache, dao.NewGORMArticleDAO, repository.NewCachedArticleRepository, service.NewDefaultArticleService)
 
 var interactiveSvc = wire.NewSet(cache.NewRedisInteractiveCache, dao.NewGORMInteractiveDAO, repository.NewCachedInteractiveRepository, service.NewDefaultInteractiveService)
+
+var rankingSvc = wire.NewSet(cache.NewRedisRankingCache, repository.NewCachedRankingRepository, service.NewBatchRankingService)
