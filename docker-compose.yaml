@@ -40,3 +40,52 @@ services:
       - ALLOW_EMPTY_PASSWORD=yes
     networks:
       - net01
+#----------------------------------------------------------------------------------------------
+  kafka:
+    image: bitnami/kafka:3.9.0
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"    # 外部客户端 (如您的Go程序) 连接端口
+      - "9093:9093"    # 控制器通信端口 (通常无需暴露给主机，但保留亦可)
+    environment:
+      # KRaft 模式配置
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_NODE_ID=1
+      # 1.【关键修改】使用服务名'kafka'代替IP地址，这是Docker网络内部的通信方式
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+
+      # 监听器配置
+      # 2.【关键修改】定义了三个监听器：
+      # EXTERNAL: 用于外部客户端（您的Go程序）连接
+      # INTERNAL: 用于内部容器间（Kafka与Kafdrop）通信
+      # CONTROLLER: 用于KRaft控制器通信
+      - KAFKA_CFG_LISTENERS=EXTERNAL://:9092,INTERNAL://:29092,CONTROLLER://:9093
+
+      # 3.【关键修改】对外公告的地址
+      # EXTERNAL 公告为 localhost，供您的主机Go程序使用
+      # INTERNAL 公告为 kafka服务名+内部端口，供Kafdrop使用
+      - KAFKA_CFG_ADVERTISED_LISTENERS=EXTERNAL://localhost:9092,INTERNAL://kafka:29092
+
+      # 安全协议映射（增加了EXTERNAL）
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+
+      # Broker间通信使用内部监听器
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    networks:
+      - net01
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    restart: unless-stopped
+    ports:
+      - "19000:9000"  # 将Kafdrop的UI端口映射到主机的19000端口
+    environment:
+      - KAFKA_BROKERCONNECT=kafka:29092 # Kafdrop 通过 Kafka 的内部监听器进行连接
+    depends_on:
+      - kafka
+    networks:
+      - net01

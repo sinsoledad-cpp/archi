@@ -21,7 +21,7 @@ func InitJobs(l logger.Logger, rankingJob *job.RankingJob) *cron.Cron {
 	//crontab := cron.New(cron.WithSeconds(), cron.WithLocation(timezone))
 
 	expr := cron.New(cron.WithSeconds(), cron.WithLocation(timezone))
-	_, err := expr.AddJob("@every 1s", builder.Build(rankingJob))
+	_, err := expr.AddJob("@every 10s", builder.Build(rankingJob))
 	if err != nil {
 		panic(err)
 	}

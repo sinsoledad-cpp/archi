@@ -56,6 +56,7 @@ var interactiveSvcProviderSet = wire.NewSet(
 
 var rankingSvcProviderSet = wire.NewSet(
 	cache.NewRedisRankingCache,
+	cache.NewLocalRankingCache,
 	repository.NewCachedRankingRepository,
 	service.NewBatchRankingService,
 )
@@ -63,6 +64,7 @@ var rankingSvcProviderSet = wire.NewSet(
 var eventsProviderSet = wire.NewSet(
 	ioc.InitSyncProducer,
 	ioc.InitConsumers,
+	article.NewSaramaSyncProducer,
 	article.NewReadEventConsumer,
 )
 

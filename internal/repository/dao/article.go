@@ -205,6 +205,6 @@ func (a *GORMArticleDAO) ListPub(ctx context.Context, start time.Time, offset in
 	const ArticleStatusPublished uint8 = 2
 	err := a.db.WithContext(ctx).
 		Where("utime < ? AND status = ?", start.UnixMilli(), ArticleStatusPublished).
-		Order("utime DESC").Offset(offset).Limit(limit).First(&res).Error
+		Order("utime DESC").Offset(offset).Limit(limit).Find(&res).Error
 	return res, err
 }

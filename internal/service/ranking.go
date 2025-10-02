@@ -4,6 +4,7 @@ import (
 	"archi/internal/domain"
 	"archi/internal/repository"
 	"context"
+	"errors"
 	"github.com/ecodeclub/ekit/queue"
 	"github.com/ecodeclub/ekit/slice"
 	"math"
@@ -27,15 +28,16 @@ type BatchRankingService struct {
 	scoreFunc func(likeCnt int64, utime time.Time) float64
 	n         int
 
-	repo repository.RankingRepository
+	rankingRepository repository.RankingRepository
 }
 
-func NewBatchRankingService(intrSvc InteractiveService, artSvc ArticleService) RankingService {
+func NewBatchRankingService(intrSvc InteractiveService, artSvc ArticleService, repo repository.RankingRepository) RankingService {
 	return &BatchRankingService{
-		intrSvc:   intrSvc,
-		artSvc:    artSvc,
-		batchSize: 100,
-		n:         100,
+		intrSvc:           intrSvc,
+		artSvc:            artSvc,
+		batchSize:         100,
+		n:                 100,
+		rankingRepository: repo,
 		scoreFunc: func(likeCnt int64, utime time.Time) float64 {
 			// 时间
 			duration := time.Since(utime).Seconds()
@@ -51,7 +53,7 @@ func (b *BatchRankingService) TopN(ctx context.Context) error {
 	}
 	// 最终是要放到缓存里面的
 	// 存到缓存里面
-	return b.repo.ReplaceTopN(ctx, arts)
+	return b.rankingRepository.ReplaceTopN(ctx, arts)
 }
 
 func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error) {
@@ -102,7 +104,7 @@ func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error
 			err = topN.Enqueue(ele)
 
 			// 如果队列已满，说明需要进行比较和替换
-			if err == queue.ErrOutOfCapacity {
+			if errors.Is(err, queue.ErrOutOfCapacity) {
 				// 先 "偷看" 一下队头分数最低的元素
 				minEle, _ := topN.Peek()
 				// 如果新元素的得分更高，才进行替换
@@ -130,5 +132,5 @@ func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error
 	return res, nil
 }
 func (b *BatchRankingService) GetTopN(ctx context.Context) ([]domain.Article, error) {
-	return b.repo.GetTopN(ctx)
+	return b.rankingRepository.GetTopN(ctx)
 }

@@ -38,17 +38,22 @@ func InitApp() *App {
 	articleDAO := dao.NewGORMArticleDAO(db)
 	articleCache := cache.NewRedisArticleCache(cmdable)
 	articleRepository := repository.NewCachedArticleRepository(articleDAO, userRepository, articleCache)
-	articleService := service.NewDefaultArticleService(articleRepository)
+	client := ioc.InitSaramaClient()
+	syncProducer := ioc.InitSyncProducer(client)
+	producer := article.NewSaramaSyncProducer(syncProducer)
+	articleService := service.NewDefaultArticleService(articleRepository, producer)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewDefaultInteractiveService(interactiveRepository)
 	articleHandler := web.NewArticleHandler(articleService, interactiveService, logger)
 	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler)
-	client := ioc.InitSaramaClient()
 	readEventConsumer := article.NewReadEventConsumer(interactiveRepository, client, logger)
 	v2 := ioc.InitConsumers(readEventConsumer)
-	rankingService := service.NewBatchRankingService(interactiveService, articleService)
+	redisRankingCache := cache.NewRedisRankingCache(cmdable)
+	localRankingCache := cache.NewLocalRankingCache()
+	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, localRankingCache)
+	rankingService := service.NewBatchRankingService(interactiveService, articleService, rankingRepository)
 	rlockClient := ioc.InitRlockClient(cmdable)
 	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, logger)
 	cron := ioc.InitJobs(logger, rankingJob)
@@ -72,9 +77,9 @@ var articleSvcProviderSet = wire.NewSet(cache.NewRedisArticleCache, dao.NewGORMA
 
 var interactiveSvcProviderSet = wire.NewSet(cache.NewRedisInteractiveCache, dao.NewGORMInteractiveDAO, repository.NewCachedInteractiveRepository, service.NewDefaultInteractiveService)
 
-var rankingSvcProviderSet = wire.NewSet(cache.NewRedisRankingCache, repository.NewCachedRankingRepository, service.NewBatchRankingService)
+var rankingSvcProviderSet = wire.NewSet(cache.NewRedisRankingCache, cache.NewLocalRankingCache, repository.NewCachedRankingRepository, service.NewBatchRankingService)
 
-var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewReadEventConsumer)
+var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer)
 
 var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler)
 

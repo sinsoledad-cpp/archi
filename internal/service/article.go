@@ -2,6 +2,7 @@ package service
 
 import (
 	"archi/internal/domain"
+	"archi/internal/event/article"
 	"archi/internal/repository"
 	"archi/pkg/logger"
 	"context"
@@ -20,8 +21,8 @@ type ArticleService interface {
 }
 type DefaultArticleService struct {
 	repo repository.ArticleRepository
-	// TODO
-	//producer article.Producer
+
+	producer article.Producer
 
 	userRepo repository.UserRepository
 
@@ -31,13 +32,10 @@ type DefaultArticleService struct {
 	l logger.Logger
 }
 
-func NewDefaultArticleService(repo repository.ArticleRepository,
-
-// producer article.Producer
-) ArticleService {
+func NewDefaultArticleService(repo repository.ArticleRepository, producer article.Producer) ArticleService {
 	return &DefaultArticleService{
-		repo: repo,
-		//producer: producer,
+		repo:     repo,
+		producer: producer,
 	}
 }
 
@@ -65,22 +63,21 @@ func (a *DefaultArticleService) GetById(ctx context.Context, id int64) (domain.A
 }
 func (a *DefaultArticleService) GetPubById(ctx context.Context, id, uid int64) (domain.Article, error) {
 	res, err := a.repo.GetPubById(ctx, id)
-	// TODO kafka消息队列
-	//go func() {
-	//	if err == nil {
-	//		// 在这里发一个消息
-	//		er := a.producer.ProduceReadEvent(article.ReadEvent{
-	//			Aid: id,
-	//			Uid: uid,
-	//		})
-	//		if er != nil {
-	//			a.l.Error("发送 ReadEvent 失败",
-	//				logger.Int64("aid", id),
-	//				logger.Int64("uid", uid),
-	//				logger.Error(err))
-	//		}
-	//	}
-	//}()
+	go func() {
+		if err == nil {
+			// 在这里发一个消息
+			er := a.producer.ProduceReadEvent(article.ReadEvent{
+				Aid: id,
+				Uid: uid,
+			})
+			if er != nil {
+				a.l.Error("发送 ReadEvent 失败",
+					logger.Int64("aid", id),
+					logger.Int64("uid", uid),
+					logger.Error(err))
+			}
+		}
+	}()
 
 	return res, err
 }
