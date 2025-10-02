@@ -7,6 +7,7 @@
 package main
 
 import (
+	"archi/internal/event/article"
 	"archi/internal/repository"
 	"archi/internal/repository/cache"
 	"archi/internal/repository/dao"
@@ -44,27 +45,37 @@ func InitApp() *App {
 	interactiveService := service.NewDefaultInteractiveService(interactiveRepository)
 	articleHandler := web.NewArticleHandler(articleService, interactiveService, logger)
 	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler)
+	client := ioc.InitSaramaClient()
+	readEventConsumer := article.NewReadEventConsumer(interactiveRepository, client, logger)
+	v2 := ioc.InitConsumers(readEventConsumer)
 	rankingService := service.NewBatchRankingService(interactiveService, articleService)
-	client := ioc.InitRlockClient(cmdable)
-	rankingJob := ioc.InitRankingJob(rankingService, client, logger)
+	rlockClient := ioc.InitRlockClient(cmdable)
+	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, logger)
 	cron := ioc.InitJobs(logger, rankingJob)
 	app := &App{
-		engine: engine,
-		cron:   cron,
+		engine:    engine,
+		consumers: v2,
+		cron:      cron,
 	}
 	return app
 }
 
 // wire.go:
 
-var thirdParty = wire.NewSet(ioc.InitLogger, ioc.InitMySQL, ioc.InitRedis, ioc.InitRlockClient)
+var thirdPartyProviderSet = wire.NewSet(ioc.InitLogger, ioc.InitMySQL, ioc.InitRedis, ioc.InitRlockClient, ioc.InitSaramaClient)
 
-var userSvc = wire.NewSet(cache.NewRedisUserCache, dao.NewGORMUserDAO, repository.NewCachedUserRepository, service.NewUserService)
+var userSvcProviderSet = wire.NewSet(cache.NewRedisUserCache, dao.NewGORMUserDAO, repository.NewCachedUserRepository, service.NewUserService)
 
-var codeSvc = wire.NewSet(cache.NewRedisCodeCache, repository.NewCachedCodeRepository, ioc.InitSMSService, service.NewDefaultCodeService)
+var codeSvcProviderSet = wire.NewSet(cache.NewRedisCodeCache, repository.NewCachedCodeRepository, ioc.InitSMSService, service.NewDefaultCodeService)
 
-var articleSvc = wire.NewSet(cache.NewRedisArticleCache, dao.NewGORMArticleDAO, repository.NewCachedArticleRepository, service.NewDefaultArticleService)
+var articleSvcProviderSet = wire.NewSet(cache.NewRedisArticleCache, dao.NewGORMArticleDAO, repository.NewCachedArticleRepository, service.NewDefaultArticleService)
 
-var interactiveSvc = wire.NewSet(cache.NewRedisInteractiveCache, dao.NewGORMInteractiveDAO, repository.NewCachedInteractiveRepository, service.NewDefaultInteractiveService)
+var interactiveSvcProviderSet = wire.NewSet(cache.NewRedisInteractiveCache, dao.NewGORMInteractiveDAO, repository.NewCachedInteractiveRepository, service.NewDefaultInteractiveService)
 
-var rankingSvc = wire.NewSet(cache.NewRedisRankingCache, repository.NewCachedRankingRepository, service.NewBatchRankingService)
+var rankingSvcProviderSet = wire.NewSet(cache.NewRedisRankingCache, repository.NewCachedRankingRepository, service.NewBatchRankingService)
+
+var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewReadEventConsumer)
+
+var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler)
+
+var jobProviderSet = wire.NewSet(ioc.InitRankingJob, ioc.InitJobs)

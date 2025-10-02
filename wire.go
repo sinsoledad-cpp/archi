@@ -3,6 +3,7 @@
 package main
 
 import (
+	"archi/internal/event/article"
 	"archi/internal/repository"
 	"archi/internal/repository/cache"
 	"archi/internal/repository/dao"
@@ -13,69 +14,84 @@ import (
 	"github.com/google/wire"
 )
 
-var thirdParty = wire.NewSet(
+var thirdPartyProviderSet = wire.NewSet(
 	ioc.InitLogger,
 	ioc.InitMySQL,
 	ioc.InitRedis,
 	ioc.InitRlockClient,
+	ioc.InitSaramaClient,
 )
 
-var userSvc = wire.NewSet(
+var userSvcProviderSet = wire.NewSet(
 	cache.NewRedisUserCache,
 	dao.NewGORMUserDAO,
 	repository.NewCachedUserRepository,
 	service.NewUserService,
 )
 
-var codeSvc = wire.NewSet(
+var codeSvcProviderSet = wire.NewSet(
 	cache.NewRedisCodeCache,
 	repository.NewCachedCodeRepository,
 	ioc.InitSMSService,
 	service.NewDefaultCodeService,
 )
 
-var articleSvc = wire.NewSet(
+// var wechatSvc = wire.NewSet(
+//	ioc.InitWechatService,
+// )
+
+var articleSvcProviderSet = wire.NewSet(
 	cache.NewRedisArticleCache,
 	dao.NewGORMArticleDAO,
 	repository.NewCachedArticleRepository,
 	service.NewDefaultArticleService,
 )
 
-var interactiveSvc = wire.NewSet(
+var interactiveSvcProviderSet = wire.NewSet(
 	cache.NewRedisInteractiveCache,
 	dao.NewGORMInteractiveDAO,
 	repository.NewCachedInteractiveRepository,
 	service.NewDefaultInteractiveService,
 )
 
-var rankingSvc = wire.NewSet(
+var rankingSvcProviderSet = wire.NewSet(
 	cache.NewRedisRankingCache,
 	repository.NewCachedRankingRepository,
 	service.NewBatchRankingService,
 )
 
-//var wechatSvc = wire.NewSet(
-//	ioc.InitWechatService,
-//)
+var eventsProviderSet = wire.NewSet(
+	ioc.InitSyncProducer,
+	ioc.InitConsumers,
+	article.NewReadEventConsumer,
+)
+
+var handlerProviderSet = wire.NewSet(
+	jwt.NewRedisJWTHandler,
+	web.NewUserHandler,
+	//web.NewOAuth2WechatHandler,
+	web.NewArticleHandler,
+)
+
+var jobProviderSet = wire.NewSet(
+	ioc.InitRankingJob,
+	ioc.InitJobs,
+)
 
 func InitApp() *App {
 	wire.Build(
-		thirdParty,
+		thirdPartyProviderSet,
 
-		userSvc,
-		codeSvc,
+		userSvcProviderSet,
+		codeSvcProviderSet,
 		//wechatSvc,
-		articleSvc,
-		interactiveSvc,
-		rankingSvc,
+		articleSvcProviderSet,
+		interactiveSvcProviderSet,
+		rankingSvcProviderSet,
 
-		jwt.NewRedisJWTHandler,
-		web.NewUserHandler,
-		//web.NewOAuth2WechatHandler,
-		web.NewArticleHandler,
-
-		ioc.InitRankingJob,
-		ioc.InitJobs,
+		handlerProviderSet,
+		jobProviderSet,
+		eventsProviderSet,
 
 		ioc.InitWebEngine,
 		ioc.InitGinMiddlewares,
