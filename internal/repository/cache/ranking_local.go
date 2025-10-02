@@ -16,6 +16,8 @@ type LocalRankingCache struct {
 
 func NewLocalRankingCache() *LocalRankingCache {
 	return &LocalRankingCache{
+		topN:       atomicx.NewValue[[]domain.Article](),
+		ddl:        atomicx.NewValue[time.Time](),
 		expiration: time.Minute * 3,
 	}
 }

@@ -38,6 +38,7 @@ func (r *RankingJob) Name() string {
 }
 func (r *RankingJob) Run() error {
 	r.localLock.Lock()
+	defer r.localLock.Unlock()
 	lock := r.redisLock
 	if lock == nil {
 		// 抢分布式锁
@@ -47,15 +48,14 @@ func (r *RankingJob) Run() error {
 			&rlock.FixIntervalRetry{
 				Interval: time.Millisecond * 100,
 				Max:      3,
-				// 重试的超时
-			}, time.Second)
+			}, time.Second) // 重试的超时
 		if err != nil {
-			r.localLock.Unlock()
+			//r.localLock.Unlock()
 			r.logger.Warn("获取分布式锁失败", logger.Error(err))
 			return nil
 		}
 		r.redisLock = lock
-		r.localLock.Unlock()
+		//r.localLock.Unlock()
 		go func() {
 			// 并不是非得一半就续约
 			er := lock.AutoRefresh(r.timeout/2, r.timeout)
