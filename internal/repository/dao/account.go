@@ -9,7 +9,7 @@ import (
 
 // Account 账号本体
 type Account struct {
-	Id int64 `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
+	ID int64 `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
 	// 对应的用户的 ID，如果是系统账号
 	Uid int64 `gorm:"uniqueIndex:account_uid"`
 	// 账号 ID，这个才是对外使用的
@@ -33,12 +33,12 @@ type Account struct {
 }
 
 type AccountActivity struct {
-	Id  int64 `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
+	ID  int64 `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
 	Uid int64 `gorm:"index:account_uid"`
 	// 这边有些设计会只用一个单独的 txn_id 来标记
 	// 加上这些 业务 ID，DEBUG 的时候贼好用
 	Biz   string
-	BizId int64
+	BizID int64
 	// account 账号
 	AccountID   int64 `gorm:"index:account_uid"`
 	AccountType uint8 `gorm:"index:account_uid"`

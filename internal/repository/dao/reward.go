@@ -7,9 +7,9 @@ import (
 )
 
 type Reward struct {
-	Id      int64  `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
+	ID      int64  `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
 	Biz     string `gorm:"index:biz_biz_id"`
-	BizId   int64  `gorm:"index:biz_biz_id"`
+	BizID   int64  `gorm:"index:biz_biz_id"`
 	BizName string
 	// 被打赏的人
 	TargetUid int64 `gorm:"index"`
@@ -37,7 +37,7 @@ func (dao *RewardGORMDAO) Insert(ctx context.Context, r Reward) (int64, error) {
 	r.Ctime = now
 	r.Utime = now
 	err := dao.db.WithContext(ctx).Create(&r).Error
-	return r.Id, err
+	return r.ID, err
 }
 func (dao *RewardGORMDAO) GetReward(ctx context.Context, rid int64) (Reward, error) {
 	// 通过 uid 来判定是自己的打赏，防止黑客捞数据

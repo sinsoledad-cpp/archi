@@ -15,7 +15,7 @@ func (a AccountType) AsUint8() uint8 {
 // Credit 增加余额
 type Credit struct {
 	Biz   string
-	BizId int64
+	BizID int64
 	Items []CreditItem
 }
 

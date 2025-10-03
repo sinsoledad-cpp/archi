@@ -76,11 +76,11 @@ func (s *WechatNativeRewardService) GetReward(ctx context.Context, rid, uid int6
 		return r, nil
 	}
 	// 这个时候，考虑到支付到查询结果，我们搞一个慢路径
-	resp, err := s.paymentSvc.GetPayment(ctx, s.bizTradeNO(r.Id))
+	resp, err := s.paymentSvc.GetPayment(ctx, s.bizTradeNO(r.ID))
 	if err != nil {
 		// 这边我们直接返回从数据库查询的数据
 		s.l.Error("慢路径查询支付结果失败",
-			logger.Int64("rid", r.Id), logger.Error(err))
+			logger.Int64("rid", r.ID), logger.Error(err))
 		return r, nil
 	}
 	// 更新状态
@@ -100,7 +100,7 @@ func (s *WechatNativeRewardService) GetReward(ctx context.Context, rid, uid int6
 	err = s.rewardRepo.UpdateStatus(ctx, rid, r.Status)
 	if err != nil {
 		s.l.Error("更新本地打赏状态失败",
-			logger.Int64("rid", r.Id), logger.Error(err))
+			logger.Int64("rid", r.ID), logger.Error(err))
 		return r, nil
 	}
 	return r, nil
@@ -124,7 +124,7 @@ func (s *WechatNativeRewardService) UpdateReward(ctx context.Context, bizTradeNO
 		weAmt := int64(float64(r.Amt) * 0.1)
 		err = s.accountSvc.Credit(ctx, domain.Credit{
 			Biz:   "reward",
-			BizId: rid,
+			BizID: rid,
 			Items: []domain.CreditItem{
 				{
 					AccountType: domain.AccountTypeSystem,

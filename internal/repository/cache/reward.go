@@ -44,5 +44,5 @@ func (c *RewardRedisCache) CachedCodeURL(ctx context.Context, cu domain.CodeURL,
 }
 
 func (c *RewardRedisCache) codeURLKey(r domain.Reward) string {
-	return fmt.Sprintf("reward:code_url:%s:%d:%d", r.Target.Biz, r.Target.BizId, r.Uid)
+	return fmt.Sprintf("reward:code_url:%s:%d:%d", r.Target.Biz, r.Target.BizID, r.Uid)
 }

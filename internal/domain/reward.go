@@ -20,13 +20,13 @@ type CodeURL struct {
 
 type Target struct {
 	Biz     string // 因为什么而打赏
-	BizId   int64
+	BizID   int64
 	BizName string // 作为一个可选的东西// 也就是你要打赏的东西是什么
 	Uid     int64  // 打赏的目标用户
 }
 
 type Reward struct {
-	Id     int64
+	ID     int64
 	Uid    int64
 	Target Target
 	Amt    int64 // 同样不着急引入货币。
