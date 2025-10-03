@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
@@ -95,35 +96,50 @@ func (g *GORMInteractiveDAO) BatchIncrReadCnt(ctx context.Context, bizs []string
 		return nil
 	})
 }
+
 func (g *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, id int64, uid int64) error {
 	now := time.Now().UnixMilli()
 	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "uid"},
-				{Name: "biz_id"},
-				{Name: "biz"},
-			},
-			DoUpdates: clause.Assignments(map[string]interface{}{
-				"utime":  now,
-				"status": 1,
-			}),
-		}).Create(&UserLikeBiz{
-			Uid:    uid,
-			Biz:    biz,
-			BizId:  id,
-			Status: 1,
-			Utime:  now,
-			Ctime:  now,
-		}).Error
-		if err != nil {
+		// 尝试查找用户的点赞记录
+		var like UserLikeBiz
+		err := tx.Where("uid = ? AND biz_id = ? AND biz = ?", uid, id, biz).First(&like).Error
+		// 如果出错了（且不是因为记录不存在）
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-		return tx.WithContext(ctx).Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "biz_id"},
-				{Name: "biz"},
-			},
+		// 情况一：用户已经点赞
+		if err == nil && like.Status == 1 {
+			return nil // 什么都不做
+		}
+		// 情况二：用户曾经取消过点赞，现在重新点赞
+		if err == nil && like.Status == 0 {
+			res := tx.Model(&UserLikeBiz{}).
+				Where("id = ?", like.Id).
+				Updates(map[string]interface{}{
+					"utime":  now,
+					"status": 1,
+				})
+			if res.Error != nil {
+				return res.Error
+			}
+		}
+		// 情况三：用户从未点赞过
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			createErr := tx.Create(&UserLikeBiz{
+				Uid:    uid,
+				Biz:    biz,
+				BizId:  id,
+				Status: 1,
+				Utime:  now,
+				Ctime:  now,
+			}).Error
+			if createErr != nil {
+				return createErr
+			}
+		}
+		// 更新点赞计数
+		return tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "biz_id"}, {Name: "biz"}},
 			DoUpdates: clause.Assignments(map[string]interface{}{
 				"like_cnt": gorm.Expr("`like_cnt` + 1"),
 				"utime":    now,
@@ -137,12 +153,22 @@ func (g *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, id 
 		}).Error
 	})
 }
-
 func (g *GORMInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, id int64, uid int64) error {
 	now := time.Now().UnixMilli()
 	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 先找出对应的点赞记录
+		var like UserLikeBiz
+		err := tx.Where("uid = ? AND biz_id = ? AND biz = ? AND status = ?", uid, id, biz, 1).First(&like).Error
+		if err != nil {
+			// 如果记录不存在或已经取消，则什么都不做
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
+			return err
+		}
+		// 逻辑删除点赞记录
 		res := tx.Model(&UserLikeBiz{}).
-			Where("uid=? AND biz_id = ? AND biz=?", uid, id, biz).
+			Where("id = ?", like.Id).
 			Updates(map[string]interface{}{
 				"utime":  now,
 				"status": 0,
@@ -150,12 +176,13 @@ func (g *GORMInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, id 
 		if res.Error != nil {
 			return res.Error
 		}
-		// 只有在确实更新了一条记录（即从未取消状态变为取消状态）时，才减少总数
+		// 只有在确实更新了一条记录时，才减少总数
 		if res.RowsAffected == 0 {
 			return nil
 		}
+		// 更新点赞计数
 		return tx.Model(&Interactive{}).
-			Where("biz =? AND biz_id=?", biz, id).
+			Where("biz = ? AND biz_id = ?", biz, id).
 			Updates(map[string]interface{}{
 				"like_cnt": gorm.Expr("`like_cnt` - 1"),
 				"utime":    now,
