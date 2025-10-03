@@ -43,10 +43,10 @@ func (s *Service) StartAsyncCycle() {
 
 func (s *Service) AsyncSend() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	// 抢占一个异步发送的消息，确保在非常多个实例
 	// 比如 k8s 部署了三个 pod，一个请求，只有一个实例能拿到
 	as, err := s.repo.PreemptWaitingSMS(ctx)
-	cancel()
 	switch {
 	case err == nil:
 		// 执行发送

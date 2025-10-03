@@ -15,23 +15,23 @@ type PaymentRepository interface {
 	FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error)
 	GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error)
 }
-type paymentRepository struct {
+type DefaultPaymentRepository struct {
 	dao dao.PaymentDAO
 }
 
-func NewPaymentRepository(d dao.PaymentDAO) PaymentRepository {
-	return &paymentRepository{
+func NewDefaultPaymentRepository(d dao.PaymentDAO) PaymentRepository {
+	return &DefaultPaymentRepository{
 		dao: d,
 	}
 }
 
-func (p *paymentRepository) AddPayment(ctx context.Context, pmt domain.Payment) error {
+func (p *DefaultPaymentRepository) AddPayment(ctx context.Context, pmt domain.Payment) error {
 	return p.dao.Insert(ctx, p.toEntity(pmt))
 }
-func (p *paymentRepository) UpdatePayment(ctx context.Context, pmt domain.Payment) error {
+func (p *DefaultPaymentRepository) UpdatePayment(ctx context.Context, pmt domain.Payment) error {
 	return p.dao.UpdateTxnIDAndStatus(ctx, pmt.BizTradeNO, pmt.TxnID, pmt.Status)
 }
-func (p *paymentRepository) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error) {
+func (p *DefaultPaymentRepository) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error) {
 	pmts, err := p.dao.FindExpiredPayment(ctx, offset, limit, t)
 	if err != nil {
 		return nil, err
@@ -42,12 +42,12 @@ func (p *paymentRepository) FindExpiredPayment(ctx context.Context, offset int, 
 	}
 	return res, nil
 }
-func (p *paymentRepository) GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error) {
+func (p *DefaultPaymentRepository) GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error) {
 	r, err := p.dao.GetPayment(ctx, bizTradeNO)
 	return p.toDomain(r), err
 }
 
-func (p *paymentRepository) toDomain(pmt dao.Payment) domain.Payment {
+func (p *DefaultPaymentRepository) toDomain(pmt dao.Payment) domain.Payment {
 	return domain.Payment{
 		Amt: domain.Amount{
 			Currency: pmt.Currency,
@@ -60,7 +60,7 @@ func (p *paymentRepository) toDomain(pmt dao.Payment) domain.Payment {
 	}
 }
 
-func (p *paymentRepository) toEntity(pmt domain.Payment) dao.Payment {
+func (p *DefaultPaymentRepository) toEntity(pmt domain.Payment) dao.Payment {
 	return dao.Payment{
 		Amt:         pmt.Amt.Total,
 		Currency:    pmt.Amt.Currency,

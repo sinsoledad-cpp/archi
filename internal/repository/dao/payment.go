@@ -9,7 +9,7 @@ import (
 )
 
 type Payment struct {
-	Id  int64 `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
+	ID  int64 `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
 	Amt int64
 	// 你存储枚举也可以，比如说 0-CNY
 	// 目前磁盘内存那么便宜，直接放 string 也可以
@@ -42,21 +42,21 @@ type PaymentDAO interface {
 	GetPayment(ctx context.Context, bizTradeNO string) (Payment, error)
 }
 
-type PaymentGORMDAO struct {
+type GORMPaymentDAO struct {
 	db *gorm.DB
 }
 
-func NewPaymentGORMDAO(db *gorm.DB) PaymentDAO {
-	return &PaymentGORMDAO{db: db}
+func NewGORMPaymentDAO(db *gorm.DB) PaymentDAO {
+	return &GORMPaymentDAO{db: db}
 }
-func (p *PaymentGORMDAO) Insert(ctx context.Context, pmt Payment) error {
+func (p *GORMPaymentDAO) Insert(ctx context.Context, pmt Payment) error {
 	now := time.Now().UnixMilli()
 	pmt.Utime = now
 	pmt.Ctime = now
 	return p.db.WithContext(ctx).Create(&pmt).Error
 }
 
-func (p *PaymentGORMDAO) UpdateTxnIDAndStatus(ctx context.Context, bizTradeNo string, txnID string, status domain.PaymentStatus) error {
+func (p *GORMPaymentDAO) UpdateTxnIDAndStatus(ctx context.Context, bizTradeNo string, txnID string, status domain.PaymentStatus) error {
 	return p.db.WithContext(ctx).Model(&Payment{}).
 		Where("biz_trade_no = ?", bizTradeNo).
 		Updates(map[string]any{
@@ -66,7 +66,7 @@ func (p *PaymentGORMDAO) UpdateTxnIDAndStatus(ctx context.Context, bizTradeNo st
 		}).Error
 }
 
-func (p *PaymentGORMDAO) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]Payment, error) {
+func (p *GORMPaymentDAO) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]Payment, error) {
 	var res []Payment
 	err := p.db.WithContext(ctx).Where("status = ? AND utime < ?",
 		domain.PaymentStatusInit.AsUint8(), t.UnixMilli()).
@@ -74,7 +74,7 @@ func (p *PaymentGORMDAO) FindExpiredPayment(ctx context.Context, offset int, lim
 	return res, err
 }
 
-func (p *PaymentGORMDAO) GetPayment(ctx context.Context, bizTradeNO string) (Payment, error) {
+func (p *GORMPaymentDAO) GetPayment(ctx context.Context, bizTradeNO string) (Payment, error) {
 	var res Payment
 	err := p.db.WithContext(ctx).Where("biz_trade_no = ?", bizTradeNO).First(&res).Error
 	return res, err
