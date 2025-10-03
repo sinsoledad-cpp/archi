@@ -83,7 +83,7 @@ func (c *CachedInteractiveRepository) DecrLike(ctx context.Context, biz string, 
 func (c *CachedInteractiveRepository) AddCollectionItem(ctx context.Context, biz string, id int64, cid int64, uid int64) error {
 	err := c.dao.InsertCollectionBiz(ctx, dao.UserCollectionBiz{
 		Biz:   biz,
-		BizId: id,
+		BizID: id,
 		Cid:   cid,
 		Uid:   uid,
 	})
@@ -168,7 +168,7 @@ func (c *CachedInteractiveRepository) GetByIds(ctx context.Context, biz string, 
 
 func (c *CachedInteractiveRepository) toDomain(ie dao.Interactive) domain.Interactive {
 	return domain.Interactive{
-		BizID:      ie.BizId,
+		BizID:      ie.BizID,
 		ReadCnt:    ie.ReadCnt,
 		LikeCnt:    ie.LikeCnt,
 		CollectCnt: ie.CollectCnt,

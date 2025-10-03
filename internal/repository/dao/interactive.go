@@ -9,9 +9,9 @@ import (
 )
 
 type UserLikeBiz struct {
-	Id     int64  `gorm:"primaryKey,autoIncrement"`
+	ID     int64  `gorm:"primaryKey,autoIncrement"`
 	Uid    int64  `gorm:"uniqueIndex:uid_biz_type_id"`
-	BizId  int64  `gorm:"uniqueIndex:uid_biz_type_id"`
+	BizID  int64  `gorm:"uniqueIndex:uid_biz_type_id"`
 	Biz    string `gorm:"type:varchar(128);uniqueIndex:uid_biz_type_id"`
 	Status int    // 新增 Status 字段，0 表示取消，1 表示有效
 	Utime  int64
@@ -19,12 +19,12 @@ type UserLikeBiz struct {
 }
 
 type UserCollectionBiz struct {
-	Id int64 `gorm:"primaryKey,autoIncrement"`
+	ID int64 `gorm:"primaryKey,autoIncrement"`
 	// 这边还是保留了了唯一索引
 	// 收藏夹的ID
 	// 收藏夹ID本身有索引
 	Uid    int64  `gorm:"uniqueIndex:uid_biz_cid_id"`
-	BizId  int64  `gorm:"uniqueIndex:uid_biz_cid_id"`
+	BizID  int64  `gorm:"uniqueIndex:uid_biz_cid_id"`
 	Biz    string `gorm:"type:varchar(128);uniqueIndex:uid_biz_cid_id"`
 	Cid    int64  `gorm:"uniqueIndex:uid_biz_cid_id,index"`
 	Status int    // 新增 Status 字段，0 表示取消，1 表示有效
@@ -34,9 +34,9 @@ type UserCollectionBiz struct {
 }
 
 type Interactive struct {
-	Id int64 `gorm:"primaryKey,autoIncrement"`
+	ID int64 `gorm:"primaryKey,autoIncrement"`
 	// <bizid, biz>
-	BizId int64 `gorm:"uniqueIndex:biz_type_id"`
+	BizID int64 `gorm:"uniqueIndex:biz_type_id"`
 	// WHERE biz = ?
 	Biz string `gorm:"type:varchar(128);uniqueIndex:biz_type_id"`
 
@@ -79,7 +79,7 @@ func (g *GORMInteractiveDAO) IncrReadCnt(ctx context.Context, biz string, bizId 
 		}),
 	}).Create(&Interactive{
 		Biz:     biz,
-		BizId:   bizId,
+		BizID:   bizId,
 		ReadCnt: 1,
 		Ctime:   now,
 		Utime:   now,
@@ -115,7 +115,7 @@ func (g *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, id 
 		// 情况二：用户曾经取消过点赞，现在重新点赞
 		if err == nil && like.Status == 0 {
 			res := tx.Model(&UserLikeBiz{}).
-				Where("id = ?", like.Id).
+				Where("id = ?", like.ID).
 				Updates(map[string]interface{}{
 					"utime":  now,
 					"status": 1,
@@ -129,7 +129,7 @@ func (g *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, id 
 			createErr := tx.Create(&UserLikeBiz{
 				Uid:    uid,
 				Biz:    biz,
-				BizId:  id,
+				BizID:  id,
 				Status: 1,
 				Utime:  now,
 				Ctime:  now,
@@ -147,7 +147,7 @@ func (g *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, id 
 			}),
 		}).Create(&Interactive{
 			Biz:     biz,
-			BizId:   id,
+			BizID:   id,
 			LikeCnt: 1,
 			Ctime:   now,
 			Utime:   now,
@@ -190,7 +190,7 @@ func (g *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, cb UserCol
 	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 查找用户的收藏记录
 		var userColl UserCollectionBiz
-		err := tx.Where("uid = ? AND biz_id = ? AND biz = ? AND cid = ?", cb.Uid, cb.BizId, cb.Biz, cb.Cid).First(&userColl).Error
+		err := tx.Where("uid = ? AND biz_id = ? AND biz = ? AND cid = ?", cb.Uid, cb.BizID, cb.Biz, cb.Cid).First(&userColl).Error
 
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err // 数据库错误
@@ -204,7 +204,7 @@ func (g *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, cb UserCol
 			}
 			// 状态是无效，说明是重新收藏
 			res := tx.Model(&UserCollectionBiz{}).
-				Where("id = ?", userColl.Id).
+				Where("id = ?", userColl.ID).
 				Updates(map[string]interface{}{
 					"utime":  now,
 					"status": 1,
@@ -228,7 +228,7 @@ func (g *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, cb UserCol
 			}),
 		}).Create(&Interactive{
 			Biz:        cb.Biz,
-			BizId:      cb.BizId,
+			BizID:      cb.BizID,
 			CollectCnt: 1,
 			Ctime:      now,
 			Utime:      now,
