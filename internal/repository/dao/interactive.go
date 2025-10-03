@@ -52,6 +52,7 @@ type InteractiveDAO interface {
 	InsertLikeInfo(ctx context.Context, biz string, id int64, uid int64) error
 	DeleteLikeInfo(ctx context.Context, biz string, id int64, uid int64) error
 	InsertCollectionBiz(ctx context.Context, cb UserCollectionBiz) error
+	DeleteCollectionBiz(ctx context.Context, biz string, bizId int64, cid int64, uid int64) error
 	GetLikeInfo(ctx context.Context, biz string, id int64, uid int64) (UserLikeBiz, error)
 	GetCollectInfo(ctx context.Context, biz string, id int64, uid int64) (UserCollectionBiz, error)
 	Get(ctx context.Context, biz string, id int64) (Interactive, error)
@@ -156,31 +157,22 @@ func (g *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, id 
 func (g *GORMInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, id int64, uid int64) error {
 	now := time.Now().UnixMilli()
 	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 先找出对应的点赞记录
-		var like UserLikeBiz
-		err := tx.Where("uid = ? AND biz_id = ? AND biz = ? AND status = ?", uid, id, biz, 1).First(&like).Error
-		if err != nil {
-			// 如果记录不存在或已经取消，则什么都不做
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil
-			}
-			return err
-		}
-		// 逻辑删除点赞记录
+		// 直接更新，WHERE子句中包含所有检查条件
 		res := tx.Model(&UserLikeBiz{}).
-			Where("id = ?", like.Id).
+			Where("uid = ? AND biz_id = ? AND biz = ? AND status = ?", uid, id, biz, 1).
 			Updates(map[string]interface{}{
 				"utime":  now,
-				"status": 0,
+				"status": 0, // 逻辑删除
 			})
 		if res.Error != nil {
 			return res.Error
 		}
-		// 只有在确实更新了一条记录时，才减少总数
+		// 只有在确实影响了一行时（即从点赞状态变为未点赞），才更新总数
 		if res.RowsAffected == 0 {
+			// 这意味着用户没有点过赞，或者已经取消了，无需任何操作
 			return nil
 		}
-		// 更新点赞计数
+		// 更新总数
 		return tx.Model(&Interactive{}).
 			Where("biz = ? AND biz_id = ?", biz, id).
 			Updates(map[string]interface{}{
@@ -194,31 +186,42 @@ func (g *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, cb UserCol
 	cb.Ctime = now
 	cb.Utime = now
 	cb.Status = 1 // 确保是有效状态
-	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 使用 OnConflict 来处理重复收藏的情况
-		err := tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "uid"},
-				{Name: "biz_id"},
-				{Name: "biz"},
-				{Name: "cid"},
-			},
-			DoUpdates: clause.Assignments(map[string]interface{}{
-				"utime":  now,
-				"status": 1, // 如果是重新收藏，则更新状态
-			}),
-		}).Create(&cb).Error
 
-		if err != nil {
-			return err
+	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 查找用户的收藏记录
+		var userColl UserCollectionBiz
+		err := tx.Where("uid = ? AND biz_id = ? AND biz = ? AND cid = ?", cb.Uid, cb.BizId, cb.Biz, cb.Cid).First(&userColl).Error
+
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err // 数据库错误
 		}
 
-		// 同样，增加收藏计数
-		return tx.WithContext(ctx).Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "biz_id"},
-				{Name: "biz"},
-			},
+		// 记录已存在
+		if err == nil {
+			// 且状态是有效，说明已经收藏过，无需操作
+			if userColl.Status == 1 {
+				return nil
+			}
+			// 状态是无效，说明是重新收藏
+			res := tx.Model(&UserCollectionBiz{}).
+				Where("id = ?", userColl.Id).
+				Updates(map[string]interface{}{
+					"utime":  now,
+					"status": 1,
+				})
+			if res.Error != nil {
+				return res.Error
+			}
+		} else {
+			// 记录不存在，创建新记录
+			if createErr := tx.Create(&cb).Error; createErr != nil {
+				return createErr
+			}
+		}
+
+		// 增加收藏计数
+		return tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "biz_id"}, {Name: "biz"}},
 			DoUpdates: clause.Assignments(map[string]interface{}{
 				"collect_cnt": gorm.Expr("`collect_cnt` + 1"),
 				"utime":       now,

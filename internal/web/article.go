@@ -364,7 +364,7 @@ func (a *ArticleHandler) Collect(ctx *gin.Context, req ArticleCollectReq, uc jwt
 		err = a.interSvc.Collect(ctx, a.biz, req.Id, req.Cid, uc.Uid)
 	} else {
 		// 取消点赞
-		err = a.interSvc.Collect(ctx, a.biz, req.Id, req.Cid, uc.Uid)
+		err = a.interSvc.CancelCollect(ctx, a.biz, req.Id, req.Cid, uc.Uid)
 	}
 	if err != nil {
 		return ginx.Result{

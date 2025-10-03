@@ -15,6 +15,7 @@ type InteractiveService interface {
 	Like(c context.Context, biz string, id int64, uid int64) error
 	CancelLike(c context.Context, biz string, id int64, uid int64) error
 	Collect(ctx context.Context, biz string, bizId, cid, uid int64) error
+	CancelCollect(ctx context.Context, biz string, bizId, cid, uid int64) error
 	Get(ctx context.Context, biz string, id int64, uid int64) (domain.Interactive, error)
 	GetByIds(ctx context.Context, biz string, ids []int64) (map[int64]domain.Interactive, error)
 }
@@ -40,6 +41,9 @@ func (i *DefaultInteractiveService) CancelLike(c context.Context, biz string, id
 }
 func (i *DefaultInteractiveService) Collect(ctx context.Context, biz string, bizId, cid, uid int64) error {
 	return i.repo.AddCollectionItem(ctx, biz, bizId, cid, uid)
+}
+func (i *DefaultInteractiveService) CancelCollect(ctx context.Context, biz string, bizId, cid, uid int64) error {
+	return i.repo.RemoveCollectionItem(ctx, biz, bizId, cid, uid)
 }
 func (i *DefaultInteractiveService) Get(ctx context.Context, biz string, id int64, uid int64) (domain.Interactive, error) {
 	intr, err := i.repo.Get(ctx, biz, id)
