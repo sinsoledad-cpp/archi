@@ -17,6 +17,7 @@ import (
 type PaymentService interface {
 	// Prepay 预支付，对应于微信创建订单的步骤
 	Prepay(ctx context.Context, pmt domain.Payment) (string, error)
+	GetPayment(ctx context.Context, bizTradeId string) (domain.Payment, error)
 }
 
 var errUnknownTransactionState = errors.New("未知的微信事务状态")
@@ -90,7 +91,9 @@ func (n *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (
 	// 你都要问一下第三方支付这个
 	return *resp.CodeUrl, nil // 返回支付二维码
 }
-
+func (n *NativePaymentService) GetPayment(ctx context.Context, bizTradeId string) (domain.Payment, error) {
+	return n.repo.GetPayment(ctx, bizTradeId)
+}
 func (n *NativePaymentService) SyncWechatInfo(ctx context.Context, bizTradeNO string) error {
 	txn, _, err := n.nativeApiSvc.QueryOrderByOutTradeNo(ctx,
 		native.QueryOrderByOutTradeNoRequest{
@@ -105,10 +108,6 @@ func (n *NativePaymentService) SyncWechatInfo(ctx context.Context, bizTradeNO st
 
 func (n *NativePaymentService) FindExpiredPayment(ctx context.Context, offset, limit int, t time.Time) ([]domain.Payment, error) {
 	return n.repo.FindExpiredPayment(ctx, offset, limit, t)
-}
-
-func (n *NativePaymentService) GetPayment(ctx context.Context, bizTradeId string) (domain.Payment, error) {
-	return n.repo.GetPayment(ctx, bizTradeId)
 }
 
 func (n *NativePaymentService) HandleCallback(ctx context.Context, txn *payments.Transaction) error {
