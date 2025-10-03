@@ -268,6 +268,9 @@ func (a *ArticleHandler) PubDetail(ctx *gin.Context, uc jwt.UserClaims) (ginx.Re
 	eg.Go(func() error {
 		var er error
 		intr, er = a.interSvc.Get(ctx, a.biz, id, uc.Uid)
+
+		//if er
+
 		return er
 	})
 

@@ -7,6 +7,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var ErrNotFoundInter = repository.ErrNotFoundInter
+
 //go:generate mockgen -source=./interactive.go -package=mocks -destination=./mocks/interactive.mock.go InteractiveService
 type InteractiveService interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error

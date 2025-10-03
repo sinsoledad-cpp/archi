@@ -47,7 +47,7 @@ func NewUserHandler(log logger.Logger, userSvc service.UserService, codeSvc serv
 }
 
 func (u *UserHandler) RegisterRoutes(e *gin.Engine) {
-	g := e.Group("/user")
+	g := e.Group("/users")
 
 	g.POST("/signup", ginx.WrapBody(u.SignUp))
 	g.POST("/login", ginx.WrapBody(u.LoginJWT))

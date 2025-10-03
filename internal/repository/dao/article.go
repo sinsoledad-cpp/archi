@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const ArticleStatusPublished uint8 = 2
+
 type Article struct {
 	ID      int64  `gorm:"primaryKey,autoIncrement" bson:"id,omitempty"`
 	Title   string `gorm:"type=varchar(4096)" bson:"title,omitempty"`
@@ -159,7 +161,7 @@ func (a *GORMArticleDAO) SyncV1(ctx context.Context, art Article) (int64, error)
 func (a *GORMArticleDAO) SyncStatus(ctx context.Context, uid int64, id int64, status uint8) error {
 	now := time.Now().UnixMilli()
 	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		res := tx.Model(&Article{}).Where("id = ? and author_id = ?", uid, id).
+		res := tx.Model(&Article{}).Where("id = ? and author_id = ?", id, uid).
 			Updates(map[string]any{
 				"utime":  now,
 				"status": status,
@@ -170,7 +172,7 @@ func (a *GORMArticleDAO) SyncStatus(ctx context.Context, uid int64, id int64, st
 		if res.RowsAffected != 1 {
 			return errors.New("ID 不对或者创作者不对")
 		}
-		return tx.Model(&PublishedArticle{}).Where("id = ?", uid).
+		return tx.Model(&PublishedArticle{}).Where("id = ?", id).
 			Updates(map[string]any{
 				"utime":  now,
 				"status": status,
@@ -196,13 +198,14 @@ func (a *GORMArticleDAO) GetById(ctx context.Context, id int64) (Article, error)
 
 func (a *GORMArticleDAO) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
 	var res PublishedArticle
-	err := a.db.WithContext(ctx).Where("id = ?", id).First(&res).Error
+
+	err := a.db.WithContext(ctx).Where("id = ? AND status = ?", id, ArticleStatusPublished).First(&res).Error
 	return res, err
 }
 
 func (a *GORMArticleDAO) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]PublishedArticle, error) {
 	var res []PublishedArticle
-	const ArticleStatusPublished uint8 = 2
+
 	err := a.db.WithContext(ctx).
 		Where("utime < ? AND status = ?", start.UnixMilli(), ArticleStatusPublished).
 		Order("utime DESC").Offset(offset).Limit(limit).Find(&res).Error

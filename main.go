@@ -17,10 +17,10 @@ func main() {
 		}
 	}
 
-	app.cron.Start()
-	defer func() {
-		<-app.cron.Stop().Done()
-	}()
+	//app.cron.Start()
+	//defer func() {
+	//	<-app.cron.Stop().Done()
+	//}()
 
 	server := app.engine
 	err := server.Run(":8080")

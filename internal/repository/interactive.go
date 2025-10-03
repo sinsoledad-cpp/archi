@@ -8,8 +8,11 @@ import (
 	"context"
 	"errors"
 	"github.com/ecodeclub/ekit/slice"
+	"gorm.io/gorm"
 	"time"
 )
+
+var ErrNotFoundInter = gorm.ErrRecordNotFound
 
 type InteractiveRepository interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
@@ -100,6 +103,10 @@ func (c *CachedInteractiveRepository) Get(ctx context.Context, biz string, id in
 			logger.Error(err))
 	}
 	ie, err := c.dao.Get(ctx, biz, id)
+	if errors.Is(err, dao.ErrRecordNotFound) {
+		//记录日志
+		return domain.Interactive{}, nil
+	}
 	if err != nil {
 		return domain.Interactive{}, err
 	}
