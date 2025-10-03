@@ -28,6 +28,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.1.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.1.0
+	github.com/wechatpay-apiv3/wechatpay-go v0.2.21
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
 	go.uber.org/zap v1.27.0
