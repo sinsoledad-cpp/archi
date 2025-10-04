@@ -3,7 +3,7 @@ package article
 import (
 	"archi/internal/repository"
 	"archi/pkg/logger"
-	"archi/pkg/samarax"
+	"archi/pkg/saramax"
 	"context"
 	"github.com/IBM/sarama"
 	"time"
@@ -26,7 +26,7 @@ func (i *ReadEventConsumer) Start() error {
 	go func() {
 		er := cg.Consume(context.Background(),
 			[]string{TopicReadEvent},
-			samarax.NewHandler[ReadEvent](i.l, i.Consume))
+			saramax.NewHandler[ReadEvent](i.l, i.Consume))
 		if er != nil {
 			i.l.Error("退出消费", logger.Error(er))
 		}
@@ -50,7 +50,7 @@ func (i *ReadEventConsumer) StartS() error {
 		er := cg.Consume(
 			context.Background(),
 			[]string{TopicReadEvent},
-			samarax.NewBatchConsumerAtomicFunc[ReadEvent](i.l, i.BatchConsume))
+			saramax.NewBatchConsumerAtomicFunc[ReadEvent](i.l, i.BatchConsume))
 		if er != nil {
 			i.l.Error("退出消费", logger.Error(er))
 		}

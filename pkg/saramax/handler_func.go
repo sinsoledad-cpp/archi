@@ -1,4 +1,4 @@
-package samarax
+package saramax
 
 import "github.com/IBM/sarama"
 
