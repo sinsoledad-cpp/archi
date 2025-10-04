@@ -17,20 +17,21 @@ import (
 )
 
 type ArticleHandler struct {
-	ArtSvc    service.ArticleService //art
-	interSvc  service.InteractiveService
-	rewardSvc service.RewardService
-	l         logger.Logger
-	biz       string
+	ArtSvc   service.ArticleService //art
+	interSvc service.InteractiveService
+	//rewardSvc service.RewardService
+	l   logger.Logger
+	biz string
 }
 
-func NewArticleHandler(artSvc service.ArticleService, interSvc service.InteractiveService, rewardSvc service.RewardService, l logger.Logger) *ArticleHandler {
+// rewardSvc service.RewardService,
+func NewArticleHandler(artSvc service.ArticleService, interSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
-		ArtSvc:    artSvc,
-		interSvc:  interSvc,
-		rewardSvc: rewardSvc,
-		l:         l,
-		biz:       "article",
+		ArtSvc:   artSvc,
+		interSvc: interSvc,
+		//rewardSvc: rewardSvc,
+		l:   l,
+		biz: "article",
 	}
 }
 
@@ -53,7 +54,7 @@ func (a *ArticleHandler) RegisterRoutes(e *gin.Engine) {
 	// 传入一个参数，true 就是点赞, false 就是不点赞
 	pub.POST("/like", ginx.WrapBodyAndClaims(a.Like))
 	pub.POST("/collect", ginx.WrapBodyAndClaims(a.Collect))
-	pub.POST("/reward", ginx.WrapBodyAndClaims(a.Reward))
+	//pub.POST("/reward", ginx.WrapBodyAndClaims(a.Reward))
 }
 
 type ArticleEditReq struct {
@@ -386,37 +387,37 @@ type RewardReq struct {
 	Amt int64 `json:"amt"`
 }
 
-func (a *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc jwt.UserClaims) (ginx.Result, error) {
-	art, err := a.ArtSvc.GetPubById(ctx.Request.Context(), req.Id, uc.Uid)
-	if err != nil {
-		return ginx.Result{
-			Code: errs.ArticleInternalServerError,
-			Msg:  "系统错误",
-		}, err
-	}
-
-	resp, err := a.rewardSvc.PreReward(ctx.Request.Context(), domain.Reward{
-		Uid: uc.Uid,
-		Target: domain.Target{
-			Biz:     a.biz,
-			BizID:   art.ID,
-			BizName: art.Title,
-			Uid:     art.Author.ID,
-		},
-		Amt: req.Amt,
-	})
-	if err != nil {
-		return ginx.Result{
-			Code: errs.ArticleInternalServerError,
-			Msg:  "系统错误",
-		}, err
-	}
-	return ginx.Result{
-		Code: http.StatusOK,
-		Msg:  "跳转打赏页面成功",
-		Data: map[string]any{
-			"codeURL": resp.URL,
-			"rid":     resp.Rid,
-		},
-	}, nil
-}
+//func (a *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc jwt.UserClaims) (ginx.Result, error) {
+//	art, err := a.ArtSvc.GetPubById(ctx.Request.Context(), req.Id, uc.Uid)
+//	if err != nil {
+//		return ginx.Result{
+//			Code: errs.ArticleInternalServerError,
+//			Msg:  "系统错误",
+//		}, err
+//	}
+//
+//	resp, err := a.rewardSvc.PreReward(ctx.Request.Context(), domain.Reward{
+//		Uid: uc.Uid,
+//		Target: domain.Target{
+//			Biz:     a.biz,
+//			BizID:   art.ID,
+//			BizName: art.Title,
+//			Uid:     art.Author.ID,
+//		},
+//		Amt: req.Amt,
+//	})
+//	if err != nil {
+//		return ginx.Result{
+//			Code: errs.ArticleInternalServerError,
+//			Msg:  "系统错误",
+//		}, err
+//	}
+//	return ginx.Result{
+//		Code: http.StatusOK,
+//		Msg:  "跳转打赏页面成功",
+//		Data: map[string]any{
+//			"codeURL": resp.URL,
+//			"rid":     resp.Rid,
+//		},
+//	}, nil
+//}
