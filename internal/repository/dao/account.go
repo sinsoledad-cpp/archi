@@ -51,7 +51,7 @@ type AccountActivity struct {
 	Utime int64
 }
 
-func (AccountActivity) TableName() string {
+func (*AccountActivity) TableName() string {
 	return "account_activities"
 }
 
