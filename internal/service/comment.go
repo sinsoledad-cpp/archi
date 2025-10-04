@@ -13,7 +13,7 @@ type CommentService interface {
 	// DeleteComment 删除评论，删除本评论何其子评论
 	DeleteComment(ctx context.Context, id int64) error
 	// CreateComment 创建评论
-	CreateComment(ctx context.Context, comment domain.Comment) error
+	CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error)
 	GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error)
 }
 
@@ -40,7 +40,7 @@ func (c *commentService) DeleteComment(ctx context.Context, id int64) error {
 	})
 }
 
-func (c *commentService) CreateComment(ctx context.Context, comment domain.Comment) error {
+func (c *commentService) CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error) {
 	return c.repo.CreateComment(ctx, comment)
 }
 func (c *commentService) GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error) {

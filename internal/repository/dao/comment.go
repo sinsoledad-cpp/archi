@@ -37,10 +37,9 @@ func (*Comment) TableName() string {
 
 //go:generate mockgen -source=./comment.go -package=daomocks -destination=mocks/comment.mock.go CommentDAO
 type CommentDAO interface {
-	Insert(ctx context.Context, u Comment) error
+	Insert(ctx context.Context, u Comment) (int64, error)
 	// FindByBiz 只查找一级评论
-	FindByBiz(ctx context.Context, biz string,
-		bizId, minID, limit int64) ([]Comment, error)
+	FindByBiz(ctx context.Context, biz string, bizId, minID, limit int64) ([]Comment, error)
 	// FindCommentList Comment的id为0 获取一级评论，如果不为0获取对应的评论，和其评论的所有回复
 	FindCommentList(ctx context.Context, u Comment) ([]Comment, error)
 	FindRepliesByPid(ctx context.Context, pid int64, offset, limit int) ([]Comment, error)
@@ -59,8 +58,9 @@ func NewCommentDAO(db *gorm.DB) CommentDAO {
 	}
 }
 
-func (c *GORMCommentDAO) Insert(ctx context.Context, u Comment) error {
-	return c.db.WithContext(ctx).Create(u).Error
+func (c *GORMCommentDAO) Insert(ctx context.Context, u Comment) (int64, error) {
+	err := c.db.WithContext(ctx).Create(u).Error
+	return u.Id, err
 }
 
 // FindByBiz 只查找一级评论

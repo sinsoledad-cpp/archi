@@ -16,7 +16,7 @@ type CommentRepository interface {
 	// DeleteComment 删除评论，删除本评论何其子评论
 	DeleteComment(ctx context.Context, comment domain.Comment) error
 	// CreateComment 创建评论
-	CreateComment(ctx context.Context, comment domain.Comment) error
+	CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error)
 	// GetCommentByIds 获取单条评论 支持批量获取
 	GetCommentByIds(ctx context.Context, id []int64) ([]domain.Comment, error)
 	GetMoreReplies(ctx context.Context, rid int64, id int64, limit int64) ([]domain.Comment, error)
@@ -72,8 +72,23 @@ func (c *CachedCommentRepo) DeleteComment(ctx context.Context, comment domain.Co
 		Id: comment.Id,
 	})
 }
-func (c *CachedCommentRepo) CreateComment(ctx context.Context, comment domain.Comment) error {
-	return c.dao.Insert(ctx, c.toEntity(comment))
+func (c *CachedCommentRepo) CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error) {
+	id, err := c.dao.Insert(ctx, c.toEntity(comment))
+	if err != nil {
+		// 如果插入失败，直接返回错误
+		return domain.Comment{}, err
+	}
+	// 2. 根据这个 ID，立刻查询完整的领域对象
+	comments, err := c.GetCommentByIds(ctx, []int64{id})
+	if err != nil {
+		// 这是一个补偿措施，理论上刚插入的数据一定能查到
+		// 如果查不到，说明有严重问题，但为了接口健壮性，可以只返回ID
+		c.l.Error("创建评论后查询失败，数据不一致", logger.Error(err), logger.Int64("comment_id", id))
+		// 尽管查询失败，但创建是成功的，可以返回一个只包含ID的对象作为降级方案
+		return domain.Comment{Id: id}, nil
+	}
+	// 正常情况下，返回查询到的完整对象
+	return comments[0], nil
 }
 func (c *CachedCommentRepo) GetCommentByIds(ctx context.Context, ids []int64) ([]domain.Comment, error) {
 	vals, err := c.dao.FindOneByIDs(ctx, ids)
