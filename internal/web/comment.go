@@ -145,6 +145,8 @@ func (h *CommentHandler) GetMoreReplies(ctx *gin.Context, req GetMoreRepliesReq)
 		}, err
 	}
 	return ginx.Result{
+		Code: http.StatusOK,
+		Msg:  "加载更多回复成功",
 		Data: slice.Map(list, func(idx int, src domain.Comment) CommentVo {
 			return h.toVo(src)
 		}),
