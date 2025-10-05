@@ -206,12 +206,12 @@ func (a *ArticleHandler) Detail(ctx *gin.Context, uc jwt.UserClaims) (ginx.Resul
 	}, nil
 }
 
-type Page struct {
+type ArticleListPage struct {
 	Limit  int
 	Offset int
 }
 
-func (a *ArticleHandler) List(ctx *gin.Context, page Page, uc jwt.UserClaims) (ginx.Result, error) {
+func (a *ArticleHandler) List(ctx *gin.Context, page ArticleListPage, uc jwt.UserClaims) (ginx.Result, error) {
 	arts, err := a.ArtSvc.GetByAuthor(ctx, uc.Uid, page.Offset, page.Limit)
 	if err != nil {
 		a.l.Error("查找文章列表失败",
