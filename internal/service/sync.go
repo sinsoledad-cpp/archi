@@ -18,7 +18,7 @@ type DefaultSyncService struct {
 	anyRepo     search.AnyRepository
 }
 
-func NewSyncService(anyRepo search.AnyRepository, userRepo search.UserRepository, articleRepo search.ArticleRepository) SyncService {
+func NewDefaultSyncService(anyRepo search.AnyRepository, userRepo search.UserRepository, articleRepo search.ArticleRepository) SyncService {
 	return &DefaultSyncService{
 		userRepo:    userRepo,
 		articleRepo: articleRepo,

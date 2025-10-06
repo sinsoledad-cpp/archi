@@ -53,7 +53,7 @@ func (c *CachedCommentRepo) FindByBiz(ctx context.Context, biz string, bizId, mi
 		eg.Go(func() error {
 			// 只展示三条
 			cm.Children = make([]domain.Comment, 0, 3)
-			rs, err := c.dao.FindRepliesByPid(ctx, d.Id, 0, 3)
+			rs, err := c.dao.FindRepliesByPid(ctx, d.ID, 0, 3)
 			if err != nil {
 				// 我们认为这是一个可以容忍的错误
 				c.l.Error("查询子评论失败", logger.Error(err))
@@ -69,7 +69,7 @@ func (c *CachedCommentRepo) FindByBiz(ctx context.Context, biz string, bizId, mi
 }
 func (c *CachedCommentRepo) DeleteComment(ctx context.Context, comment domain.Comment) error {
 	return c.dao.Delete(ctx, dao.Comment{
-		Id: comment.Id,
+		ID: comment.Id,
 	})
 }
 func (c *CachedCommentRepo) CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error) {
@@ -115,7 +115,7 @@ func (c *CachedCommentRepo) GetMoreReplies(ctx context.Context, rid int64, maxID
 }
 func (c *CachedCommentRepo) toDomain(daoComment dao.Comment) domain.Comment {
 	val := domain.Comment{
-		Id: daoComment.Id,
+		Id: daoComment.ID,
 		Commentator: domain.CommentatorInfo{
 			ID: daoComment.Uid,
 		},
@@ -139,7 +139,7 @@ func (c *CachedCommentRepo) toDomain(daoComment dao.Comment) domain.Comment {
 }
 func (c *CachedCommentRepo) toEntity(domainComment domain.Comment) dao.Comment {
 	daoComment := dao.Comment{
-		Id:      domainComment.Id,
+		ID:      domainComment.Id,
 		Uid:     domainComment.Commentator.ID,
 		Biz:     domainComment.Biz,
 		BizID:   domainComment.BizID,

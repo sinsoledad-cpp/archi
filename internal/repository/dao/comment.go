@@ -10,7 +10,7 @@ import (
 var ErrDataNotFound = gorm.ErrRecordNotFound
 
 type Comment struct {
-	Id int64 `gorm:"column:id;primaryKey" json:"id"`
+	ID int64 `gorm:"column:id;primaryKey" json:"id"`
 	// 发表评论的用户
 	Uid int64 `gorm:"column:uid;index" json:"uid"`
 	// 发表评论的业务类型
@@ -22,7 +22,7 @@ type Comment struct {
 	// 父级评论
 	PID sql.NullInt64 `gorm:"column:pid;index" json:"pid"`
 	// 外键 用于级联删除
-	ParentComment *Comment `gorm:"ForeignKey:PID;AssociationForeignKey:ID;constraint:OnDelete:CASCADE"`
+	ParentComment *Comment `gorm:"foreignKey:PID;references:ID;constraint:OnDelete:CASCADE"`
 	// 评论内容
 	Content string `gorm:"type:text;column:content" json:"content"`
 	// 创建时间
@@ -60,7 +60,7 @@ func NewCommentDAO(db *gorm.DB) CommentDAO {
 
 func (c *GORMCommentDAO) Insert(ctx context.Context, u Comment) (int64, error) {
 	err := c.db.WithContext(ctx).Create(u).Error
-	return u.Id, err
+	return u.ID, err
 }
 
 // FindByBiz 只查找一级评论
@@ -76,13 +76,13 @@ func (c *GORMCommentDAO) FindByBiz(ctx context.Context, biz string, bizId, minID
 func (c *GORMCommentDAO) FindCommentList(ctx context.Context, u Comment) ([]Comment, error) {
 	var res []Comment
 	builder := c.db.WithContext(ctx)
-	if u.Id == 0 {
+	if u.ID == 0 {
 		builder = builder.
 			Where("biz=?", u.Biz).
 			Where("biz_id=?", u.BizID).
 			Where("root_id is null")
 	} else {
-		builder = builder.Where("root_id=? or id =?", u.Id, u.Id)
+		builder = builder.Where("root_id=? or id =?", u.ID, u.ID)
 	}
 	err := builder.Find(&res).Error
 	return res, err
@@ -97,7 +97,7 @@ func (c *GORMCommentDAO) FindRepliesByPid(ctx context.Context, pid int64, offset
 }
 func (c *GORMCommentDAO) Delete(ctx context.Context, u Comment) error {
 	return c.db.WithContext(ctx).Delete(&Comment{
-		Id: u.Id,
+		ID: u.ID,
 	}).Error
 }
 func (c *GORMCommentDAO) FindOneByIDs(ctx context.Context, ids []int64) ([]Comment, error) {

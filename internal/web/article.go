@@ -388,7 +388,7 @@ type RewardReq struct {
 }
 
 //func (a *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc jwt.UserClaims) (ginx.Result, error) {
-//	art, err := a.ArtSvc.GetPubById(ctx.Request.Context(), req.Id, uc.Uid)
+//	art, err := a.ArtSvc.GetPubById(ctx.Request.Context(), req.ID, uc.Uid)
 //	if err != nil {
 //		return ginx.Result{
 //			Code: errs.ArticleInternalServerError,
