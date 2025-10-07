@@ -10,6 +10,7 @@ import (
 
 type FollowRepository interface {
 	// GetFollowee 获取某人的关注列表
+	GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error)
 	GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error)
 	// FollowInfo 查看关注人的详情
 	FollowInfo(ctx context.Context, follower int64, followee int64) (domain.FollowRelation, error)
@@ -32,6 +33,14 @@ func NewFollowRelationRepository(dao dao.FollowRelationDao, cache cache.FollowCa
 		cache: cache,
 		l:     l,
 	}
+}
+
+func (d *CachedRelationRepository) GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
+	followerList, err := d.dao.GetFollowerList(ctx, followee)
+	if err != nil {
+		return nil, err
+	}
+	return d.genFollowRelationList(followerList), nil
 }
 
 func (d *CachedRelationRepository) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {

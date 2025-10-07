@@ -32,6 +32,8 @@ type FollowRelation struct {
 }
 
 type FollowRelationDao interface {
+	// 获取莫人的粉丝列表
+	GetFollowerList(ctx context.Context, followee int64) ([]FollowRelation, error)
 	// FollowRelationList 获取某人的关注列表
 	FollowRelationList(ctx context.Context, follower, offset, limit int64) ([]FollowRelation, error)
 	FollowRelationDetail(ctx context.Context, follower int64, followee int64) (FollowRelation, error)
@@ -52,6 +54,13 @@ func NewGORMFollowRelationDAO(db *gorm.DB) FollowRelationDao {
 	return &GORMFollowRelationDAO{
 		db: db,
 	}
+}
+func (g *GORMFollowRelationDAO) GetFollowerList(ctx context.Context, followee int64) ([]FollowRelation, error) {
+	var res []FollowRelation
+	err := g.db.WithContext(ctx).
+		Where("followee = ? AND status = ?", followee, FollowRelationStatusActive).
+		Find(&res).Error
+	return res, err
 }
 
 func (g *GORMFollowRelationDAO) FollowRelationList(ctx context.Context, follower, offset, limit int64) ([]FollowRelation, error) {
