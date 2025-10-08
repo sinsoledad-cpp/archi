@@ -39,34 +39,68 @@ func (c *CachedCommentRepository) FindByBiz(ctx context.Context, biz string, biz
 	if err != nil {
 		return nil, err
 	}
-	res := make([]domain.Comment, 0, len(daoComments))
-	// 只找三条
-	var eg errgroup.Group
+	// 如果没有父评论，直接返回，避免不必要的工作
+	if len(daoComments) == 0 {
+		return []domain.Comment{}, nil
+	}
+
 	downgraded := ctx.Value("downgraded") == "true"
-	for _, d := range daoComments {
-		d := d
-		// 这两句不能放进去，因为并发操作 res 会有坑
-		cm := c.toDomain(d)
-		res = append(res, cm)
-		if downgraded {
-			continue
+	if downgraded {
+		// 降级模式下，直接转换并返回，不查询子评论
+		res := make([]domain.Comment, 0, len(daoComments))
+		for _, d := range daoComments {
+			res = append(res, c.toDomain(d))
 		}
+		return res, nil
+	}
+
+	// --- 更安全的并发获取子评论 ---
+
+	// 1. 创建一个临时的、二维的切片来存放每个 goroutine 的结果
+	// replies 的每个元素对应一个父评论的子评论列表
+	replies := make([][]domain.Comment, len(daoComments))
+	var eg errgroup.Group
+	for i, d := range daoComments {
+		// 捕获循环变量，防止闭包问题
+		i, d := i, d
 		eg.Go(func() error {
-			// 只展示三条
-			cm.Children = make([]domain.Comment, 0, 3)
+			// 每个 goroutine 只负责查询一个父评论的子评论
 			rs, err := c.dao.FindRepliesByPid(ctx, d.ID, 0, 3)
 			if err != nil {
-				// 我们认为这是一个可以容忍的错误
 				c.l.Error("查询子评论失败", logger.Error(err))
+				// 这是一个可容忍的错误，不将 error 返回给 errgroup
+				// 这个父评论的子评论将为空
 				return nil
 			}
+			children := make([]domain.Comment, 0, len(rs))
 			for _, r := range rs {
-				cm.Children = append(cm.Children, c.toDomain(r))
+				children = append(children, c.toDomain(r))
+			}
+
+			// 2. 将结果存放到临时的、专属于自己的位置
+			// 这里没有竞争，因为每个 goroutine 操作的是不同的索引 i
+			if len(children) > 0 {
+				replies[i] = children
 			}
 			return nil
 		})
 	}
-	return res, eg.Wait()
+
+	// 等待所有 goroutine 完成
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	// 3. 在主线程中，安全地将父评论和子评论组装起来
+	res := make([]domain.Comment, 0, len(daoComments))
+	for i, d := range daoComments {
+		comment := c.toDomain(d)
+		// 从临时切片中取出对应的子评论并赋值
+		comment.Children = replies[i]
+		res = append(res, comment)
+	}
+
+	return res, nil
 }
 func (c *CachedCommentRepository) DeleteComment(ctx context.Context, comment domain.Comment) error {
 	return c.dao.Delete(ctx, dao.Comment{
