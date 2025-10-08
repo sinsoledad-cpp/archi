@@ -4,6 +4,7 @@ package main
 
 import (
 	"archi/internal/event/article"
+	"archi/internal/event/tag"
 	"archi/internal/repository"
 	"archi/internal/repository/cache"
 	"archi/internal/repository/dao"
@@ -77,6 +78,13 @@ var followSvcProviderSet = wire.NewSet(
 	service.NewDefaultFollowRelationService,
 )
 
+var tagSvcProviderSet = wire.NewSet(
+	cache.NewRedisTagCache,
+	dao.NewGORMTagDAO,
+	repository.NewCachedTagRepository,
+	service.NewDefaultTagService,
+)
+
 var searchSvcProviderSet = wire.NewSet(
 	searchDAO.NewESUserDAO,
 	searchDAO.NewESTagDAO,
@@ -90,6 +98,7 @@ var eventsProviderSet = wire.NewSet(
 	ioc.InitConsumers,
 	article.NewSaramaSyncProducer,
 	article.NewReadEventConsumer,
+	tag.NewSaramaSyncProducer,
 )
 
 var handlerProviderSet = wire.NewSet(
@@ -99,6 +108,7 @@ var handlerProviderSet = wire.NewSet(
 	web.NewArticleHandler,
 	web.NewCommentHandler,
 	web.NewFollowHandler,
+	web.NewTagHandler,
 )
 
 var jobProviderSet = wire.NewSet(
@@ -118,6 +128,7 @@ func InitApp() *App {
 		rankingSvcProviderSet,
 		commentSvcProviderSet,
 		followSvcProviderSet,
+		tagSvcProviderSet,
 
 		handlerProviderSet,
 		jobProviderSet,

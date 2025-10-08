@@ -8,6 +8,7 @@ package main
 
 import (
 	"archi/internal/event/article"
+	"archi/internal/event/tag"
 	"archi/internal/repository"
 	"archi/internal/repository/cache"
 	"archi/internal/repository/dao"
@@ -58,7 +59,13 @@ func InitApp() *App {
 	followRepository := repository.NewCachedFollowRepository(followRelationDao, followCache, logger)
 	followRelationService := service.NewDefaultFollowRelationService(followRepository)
 	followHandler := web.NewFollowHandler(followRelationService, logger)
-	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler, commentHandler, followHandler)
+	tagDAO := dao.NewGORMTagDAO(db)
+	tagCache := cache.NewRedisTagCache(cmdable)
+	tagRepository := repository.NewCachedTagRepository(tagDAO, tagCache, logger)
+	tagProducer := tag.NewSaramaSyncProducer(syncProducer)
+	tagService := service.NewDefaultTagService(tagRepository, tagProducer, logger)
+	tagHandler := web.NewTagHandler(tagService, logger)
+	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler, commentHandler, followHandler, tagHandler)
 	readEventConsumer := article.NewReadEventConsumer(interactiveRepository, client, logger)
 	v2 := ioc.InitConsumers(readEventConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
@@ -94,10 +101,12 @@ var commentSvcProviderSet = wire.NewSet(dao.NewGORMCommentDAO, repository.NewCac
 
 var followSvcProviderSet = wire.NewSet(cache.NewRedisFollowCache, dao.NewGORMFollowRelationDAO, repository.NewCachedFollowRepository, service.NewDefaultFollowRelationService)
 
+var tagSvcProviderSet = wire.NewSet(cache.NewRedisTagCache, dao.NewGORMTagDAO, repository.NewCachedTagRepository, service.NewDefaultTagService)
+
 var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, search.NewESArticleDAO, search2.NewDefaultUserRepository, search2.NewDefaultArticleRepository, service.NewDefaultSearchService)
 
-var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer)
+var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer, tag.NewSaramaSyncProducer)
 
-var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler)
+var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler, web.NewTagHandler)
 
 var jobProviderSet = wire.NewSet(ioc.InitRankingJob, ioc.InitJobs)

@@ -24,7 +24,7 @@ type CachedTagRepository struct {
 	l     logger.Logger
 }
 
-func NewTagRepository(tagDAO dao.TagDAO, c cache.TagCache, l logger.Logger) *CachedTagRepository {
+func NewCachedTagRepository(tagDAO dao.TagDAO, c cache.TagCache, l logger.Logger) TagRepository {
 	return &CachedTagRepository{
 		dao:   tagDAO,
 		l:     l,
