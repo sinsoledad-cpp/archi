@@ -11,6 +11,8 @@ import (
 	"archi/internal/repository"
 	"archi/internal/repository/cache"
 	"archi/internal/repository/dao"
+	"archi/internal/repository/dao/search"
+	search2 "archi/internal/repository/search"
 	"archi/internal/service"
 	"archi/internal/web"
 	"archi/internal/web/middleware/jwt"
@@ -91,6 +93,8 @@ var rankingSvcProviderSet = wire.NewSet(cache.NewRedisRankingCache, cache.NewLoc
 var commentSvcProviderSet = wire.NewSet(dao.NewGORMCommentDAO, repository.NewCachedCommentRepository, service.NewDefaultCommentService)
 
 var followSvcProviderSet = wire.NewSet(cache.NewRedisFollowCache, dao.NewGORMFollowRelationDAO, repository.NewCachedFollowRepository, service.NewDefaultFollowRelationService)
+
+var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, search.NewESArticleDAO, search2.NewDefaultUserRepository, search2.NewDefaultArticleRepository, service.NewDefaultSearchService)
 
 var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer)
 

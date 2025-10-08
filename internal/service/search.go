@@ -12,16 +12,16 @@ type SearchService interface {
 	Search(ctx context.Context, uid int64, expression string) (domain.SearchResult, error)
 }
 
-type searchService struct {
+type DefaultSearchService struct {
 	userRepo    search.UserRepository
 	articleRepo search.ArticleRepository
 }
 
-func NewSearchService(userRepo search.UserRepository, articleRepo search.ArticleRepository) SearchService {
-	return &searchService{userRepo: userRepo, articleRepo: articleRepo}
+func NewDefaultSearchService(userRepo search.UserRepository, articleRepo search.ArticleRepository) SearchService {
+	return &DefaultSearchService{userRepo: userRepo, articleRepo: articleRepo}
 }
 
-func (s *searchService) Search(ctx context.Context, uid int64, expression string) (domain.SearchResult, error) {
+func (s *DefaultSearchService) Search(ctx context.Context, uid int64, expression string) (domain.SearchResult, error) {
 	// 这边一般要对 expression 进行一些预处理
 	// 正常大家都是使用的空格符来分割的，但是有些时候可能会手抖，输错
 	keywords := strings.Split(expression, " ")

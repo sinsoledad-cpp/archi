@@ -14,3 +14,7 @@ redis:
 kafka:
   addr:
     - "localhost:9092"
+
+es:
+  urls: "https://localhost:9200"
+  sniff: false

@@ -7,6 +7,8 @@ import (
 	"archi/internal/repository"
 	"archi/internal/repository/cache"
 	"archi/internal/repository/dao"
+	searchDAO "archi/internal/repository/dao/search"
+	searchRepo "archi/internal/repository/search"
 	"archi/internal/service"
 	"archi/internal/web"
 	"archi/internal/web/middleware/jwt"
@@ -20,6 +22,7 @@ var thirdPartyProviderSet = wire.NewSet(
 	ioc.InitRedis,
 	ioc.InitRlockClient,
 	ioc.InitSaramaClient,
+	//ioc.InitESClient,
 )
 
 var userSvcProviderSet = wire.NewSet(
@@ -74,6 +77,14 @@ var followSvcProviderSet = wire.NewSet(
 	service.NewDefaultFollowRelationService,
 )
 
+var searchSvcProviderSet = wire.NewSet(
+	searchDAO.NewESUserDAO,
+	searchDAO.NewESTagDAO,
+	searchDAO.NewESArticleDAO,
+	searchRepo.NewDefaultUserRepository,
+	searchRepo.NewDefaultArticleRepository,
+	service.NewDefaultSearchService,
+)
 var eventsProviderSet = wire.NewSet(
 	ioc.InitSyncProducer,
 	ioc.InitConsumers,
