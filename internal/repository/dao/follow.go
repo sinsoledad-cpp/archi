@@ -94,13 +94,21 @@ func (g *GORMFollowRelationDAO) CreateFollowRelation(ctx context.Context, f Foll
 }
 
 func (g *GORMFollowRelationDAO) UpdateStatus(ctx context.Context, followee int64, follower int64, status uint8) error {
-	now := time.Now().UnixMilli()
-	return g.db.WithContext(ctx).
-		Where("follower = ? AND followee = ?", follower, followee).
+	res := g.db.WithContext(ctx).Model(&FollowRelation{}).
+		Where("followee = ? AND follower = ? AND status != ?", followee, follower, status).
 		Updates(map[string]any{
 			"status": status,
-			"utime":  now,
-		}).Error
+			"utime":  time.Now().UnixMilli(),
+		})
+	// 处理gorm本身的错误
+	if res.Error != nil {
+		return res.Error
+	}
+	// 如果没有任何行受到影响，说明关系不存在或已经是目标状态
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func (g *GORMFollowRelationDAO) CntFollower(ctx context.Context, uid int64) (int64, error) {

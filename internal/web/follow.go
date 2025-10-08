@@ -61,7 +61,10 @@ func (h *FollowHandler) ToggleFollow(ctx *gin.Context, req FollowRelationReq, uc
 				logger.Int64("followee", req.FolloweeID))
 			return ginx.Result{Code: errs.FollowInternalServerError, Msg: "系统异常，请重试"}, err
 		}
-		return ginx.Result{Msg: "关注成功"}, nil
+		return ginx.Result{
+			Code: http.StatusOK,
+			Msg:  "关注成功",
+		}, nil
 	} else {
 		// 执行取消关注逻辑
 		err := h.svc.CancelFollow(ctx, followerID, req.FolloweeID)
@@ -71,7 +74,10 @@ func (h *FollowHandler) ToggleFollow(ctx *gin.Context, req FollowRelationReq, uc
 				logger.Int64("followee", req.FolloweeID))
 			return ginx.Result{Code: errs.FollowInternalServerError, Msg: "系统异常，请重试"}, err
 		}
-		return ginx.Result{Msg: "取消关注成功"}, nil
+		return ginx.Result{
+			Code: http.StatusOK,
+			Msg:  "取消关注成功",
+		}, nil
 	}
 }
 

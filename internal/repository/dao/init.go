@@ -12,5 +12,7 @@ func InitTables(db *gorm.DB) error {
 		&UserCollectionBiz{},
 		&AsyncSMS{},
 		&Job{},
+		&Comment{},
+		&FollowRelation{},
 	)
 }

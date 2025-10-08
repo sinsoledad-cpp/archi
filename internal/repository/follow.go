@@ -6,6 +6,8 @@ import (
 	"archi/internal/repository/dao"
 	"archi/pkg/logger"
 	"context"
+	"errors"
+	"gorm.io/gorm"
 )
 
 type FollowRepository interface {
@@ -78,6 +80,10 @@ func (d *CachedFollowRepository) AddFollowRelation(ctx context.Context, c domain
 func (d *CachedFollowRepository) InactiveFollowRelation(ctx context.Context, follower int64, followee int64) error {
 	err := d.dao.UpdateStatus(ctx, followee, follower, dao.FollowRelationStatusInactive)
 	if err != nil {
+		// 如果记录未找到，说明关系已经是活跃状态，无需处理
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
 		return err
 	}
 	return d.cache.CancelFollow(ctx, follower, followee)
