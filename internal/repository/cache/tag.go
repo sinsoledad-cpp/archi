@@ -25,7 +25,7 @@ type RedisTagCache struct {
 func NewRedisTagCache(client redis.Cmdable) TagCache {
 	return &RedisTagCache{
 		client:     client,
-		expiration: time.Hour * 24 * 7,
+		expiration: 0,
 	}
 }
 

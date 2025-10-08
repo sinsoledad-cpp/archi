@@ -9,8 +9,8 @@ import (
 
 type Tag struct {
 	Id    int64  `gorm:"primaryKey,autoIncrement"`
-	Name  string `gorm:"type=varchar(4096)"`
-	Uid   int64  `gorm:"index"`
+	Name  string `gorm:"type:varchar(10);uniqueIndex:uid_name;not null"`
+	Uid   int64  `gorm:"uniqueIndex:uid_name"`
 	Ctime int64
 	Utime int64
 }
@@ -28,7 +28,7 @@ type TagBiz struct {
 }
 
 type TagDAO interface {
-	CreateTag(ctx context.Context, tag Tag) (int64, error)
+	CreateTag(ctx context.Context, tag *Tag) (int64, error)
 	CreateTagBiz(ctx context.Context, tagBiz []TagBiz) error
 	GetTagsByUid(ctx context.Context, uid int64) ([]Tag, error)
 	GetTagsByBiz(ctx context.Context, uid int64, biz string, bizId int64) ([]Tag, error)
@@ -46,7 +46,7 @@ func NewGORMTagDAO(db *gorm.DB) TagDAO {
 	}
 }
 
-func (dao *GORMTagDAO) CreateTag(ctx context.Context, tag Tag) (int64, error) {
+func (dao *GORMTagDAO) CreateTag(ctx context.Context, tag *Tag) (int64, error) {
 	now := time.Now().UnixMilli()
 	tag.Ctime = now
 	tag.Utime = now
@@ -66,7 +66,7 @@ func (dao *GORMTagDAO) CreateTagBiz(ctx context.Context, tagBiz []TagBiz) error 
 	}
 	first := tagBiz[0]
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Model(&TagBiz{}).Delete(" uid = ? AND biz = ? AND biz_id = ?", first.Uid, first.BizId, first.BizId).Error
+		err := tx.Where("uid = ? AND biz = ? AND biz_id = ?", first.Uid, first.Biz, first.BizId).Delete(&TagBiz{}).Error
 		if err != nil {
 			return err
 		}

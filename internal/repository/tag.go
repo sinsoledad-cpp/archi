@@ -33,12 +33,14 @@ func NewCachedTagRepository(tagDAO dao.TagDAO, c cache.TagCache, l logger.Logger
 }
 
 func (repo *CachedTagRepository) CreateTag(ctx context.Context, tag domain.Tag) (int64, error) {
-	id, err := repo.dao.CreateTag(ctx, repo.toEntity(tag))
+	entity := repo.toEntity(tag)
+	id, err := repo.dao.CreateTag(ctx, &entity)
 	if err != nil {
 		return 0, err
 	}
+	d := repo.toDomain(entity)
 	// 也可以考虑用 DelTags
-	err = repo.cache.Append(ctx, tag.Uid, tag)
+	err = repo.cache.Append(ctx, d.Uid, d)
 	if err != nil {
 		// 记录日志
 	}
@@ -49,16 +51,16 @@ func (repo *CachedTagRepository) BindTagToBiz(ctx context.Context, uid int64, bi
 	return repo.dao.CreateTagBiz(ctx, slice.Map(tags, func(idx int, src int64) dao.TagBiz {
 		return dao.TagBiz{
 			Tid:   src,
-			BizId: bizId,
-			Biz:   biz,
 			Uid:   uid,
+			Biz:   biz,
+			BizId: bizId,
 		}
 	}))
 }
 
 func (repo *CachedTagRepository) GetTags(ctx context.Context, uid int64) ([]domain.Tag, error) {
 	res, err := repo.cache.GetTags(ctx, uid)
-	if err == nil {
+	if err == nil && len(res) > 0 {
 		return res, nil
 	}
 	tags, err := repo.dao.GetTagsByUid(ctx, uid)

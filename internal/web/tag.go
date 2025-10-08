@@ -34,12 +34,13 @@ func (h *TagHandler) RegisterRoutes(server *gin.Engine) {
 }
 
 type CreateTagReq struct {
-	Name string `json:"name"`
+	Name string `json:"name" binding:"required,max=10"`
 }
 
 func (h *TagHandler) CreateTag(ctx *gin.Context, req CreateTagReq, uc jwt.UserClaims) (ginx.Result, error) {
 	id, err := h.svc.CreateTag(ctx, uc.Uid, req.Name)
 	if err != nil {
+
 		return ginx.Result{
 			Code: errs.UserInternalServerError,
 			Msg:  "系统错误",
