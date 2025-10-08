@@ -70,11 +70,25 @@ func (d *CachedFollowRepository) FollowInfo(ctx context.Context, follower int64,
 }
 
 func (d *CachedFollowRepository) AddFollowRelation(ctx context.Context, c domain.FollowRelation) error {
-	err := d.dao.CreateFollowRelation(ctx, d.toEntity(c))
-	if err != nil {
-		return err
+	err := d.dao.UpdateStatus(ctx, c.Followee, c.Follower, dao.FollowRelationStatusActive)
+	if err == nil {
+		// The DB state changed, so we MUST update the cache.
+		return d.cache.Follow(ctx, c.Follower, c.Followee)
 	}
-	return d.cache.Follow(ctx, c.Follower, c.Followee)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+
+		err = d.dao.CreateFollowRelation(ctx, d.toEntity(c))
+
+		if err == nil {
+			// Creation was successful (first-time follow), so update the cache.
+			return d.cache.Follow(ctx, c.Follower, c.Followee)
+		}
+
+		return nil
+	}
+
+	// Case 3: A different, unexpected database error occurred.
+	return err
 }
 
 func (d *CachedFollowRepository) InactiveFollowRelation(ctx context.Context, follower int64, followee int64) error {

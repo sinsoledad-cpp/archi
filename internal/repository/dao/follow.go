@@ -3,7 +3,6 @@ package dao
 import (
 	"context"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -80,17 +79,22 @@ func (g *GORMFollowRelationDAO) FollowRelationDetail(ctx context.Context, follow
 }
 
 func (g *GORMFollowRelationDAO) CreateFollowRelation(ctx context.Context, f FollowRelation) error {
+	//now := time.Now().UnixMilli()
+	//f.Utime = now
+	//f.Ctime = now
+	//f.Status = FollowRelationStatusActive
+	//return g.db.WithContext(ctx).Clauses(clause.OnConflict{
+	//	Columns: []clause.Column{{Name: "follower"}, {Name: "followee"}},
+	//	DoUpdates: clause.Assignments(map[string]any{
+	//		"utime":  now,
+	//		"status": FollowRelationStatusActive,
+	//	}),
+	//}).Create(&f).Error
 	now := time.Now().UnixMilli()
 	f.Utime = now
 	f.Ctime = now
-	f.Status = FollowRelationStatusActive
-	return g.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "follower"}, {Name: "followee"}},
-		DoUpdates: clause.Assignments(map[string]any{
-			"utime":  now,
-			"status": FollowRelationStatusActive,
-		}),
-	}).Create(&f).Error
+	f.Status = FollowRelationStatusActive // Ensure status is active on creation
+	return g.db.WithContext(ctx).Create(&f).Error
 }
 
 func (g *GORMFollowRelationDAO) UpdateStatus(ctx context.Context, followee int64, follower int64, status uint8) error {
