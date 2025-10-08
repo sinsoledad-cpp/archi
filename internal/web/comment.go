@@ -44,19 +44,31 @@ type CreateCommentReq struct {
 }
 
 func (h *CommentHandler) CreateComment(ctx *gin.Context, req CreateCommentReq, uc jwt.UserClaims) (ginx.Result, error) {
+	var parentComment *domain.Comment
+	if req.ParentID != 0 {
+		parentComment = &domain.Comment{
+			Id: req.ParentID,
+		}
+	} else {
+		parentComment = nil
+	}
+	var rootComment *domain.Comment
+	if req.ParentID != 0 {
+		rootComment = &domain.Comment{
+			Id: req.ParentID,
+		}
+	} else {
+		rootComment = nil
+	}
 	comment, err := h.svc.CreateComment(ctx, domain.Comment{
 		Commentator: domain.CommentatorInfo{
 			ID: uc.Uid,
 		},
-		Biz:     req.Biz,
-		BizID:   req.BizID,
-		Content: req.Content,
-		RootComment: &domain.Comment{
-			Id: req.RootID,
-		},
-		ParentComment: &domain.Comment{
-			Id: req.ParentID,
-		},
+		Biz:           req.Biz,
+		BizID:         req.BizID,
+		Content:       req.Content,
+		RootComment:   rootComment,
+		ParentComment: parentComment,
 	})
 	if err != nil {
 		return ginx.Result{

@@ -74,7 +74,8 @@ func (c *CachedCommentRepository) DeleteComment(ctx context.Context, comment dom
 	})
 }
 func (c *CachedCommentRepository) CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error) {
-	id, err := c.dao.Insert(ctx, c.toEntity(comment))
+	entity := c.toEntity(comment)
+	id, err := c.dao.Insert(ctx, &entity)
 	if err != nil {
 		// 如果插入失败，直接返回错误
 		return domain.Comment{}, err
