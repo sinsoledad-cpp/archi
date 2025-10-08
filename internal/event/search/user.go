@@ -12,17 +12,17 @@ import (
 
 const topicSyncUser = "sync_user_event"
 
-type UserConsumer struct {
-	syncSvc service.SyncService
-	client  sarama.Client
-	l       logger.Logger
-}
-
 type UserEvent struct {
 	Id       int64  `json:"id"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
 	Nickname string `json:"nickname"`
+}
+
+type UserConsumer struct {
+	syncSvc service.SyncService
+	client  sarama.Client
+	l       logger.Logger
 }
 
 func NewUserConsumer(client sarama.Client, l logger.Logger, svc service.SyncService) *UserConsumer {

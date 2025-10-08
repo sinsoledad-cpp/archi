@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const topicSyncSearch = "sync_search_event"
+
 type SyncDataEvent struct {
 	IndexName string
 	DocID     string
@@ -28,7 +30,7 @@ func (a *SyncDataEventConsumer) Start() error {
 	}
 	go func() {
 		err := cg.Consume(context.Background(),
-			[]string{topicSyncArticle},
+			[]string{topicSyncSearch},
 			saramax.NewHandler[SyncDataEvent](a.l, a.Consume))
 		if err != nil {
 			a.l.Error("退出了消费循环异常", logger.Error(err))
