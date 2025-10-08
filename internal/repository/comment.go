@@ -22,18 +22,19 @@ type CommentRepository interface {
 	GetMoreReplies(ctx context.Context, rid int64, id int64, limit int64) ([]domain.Comment, error)
 }
 
-type CachedCommentRepo struct {
+type CachedCommentRepository struct {
 	dao dao.CommentDAO
 	l   logger.Logger
 }
 
-func NewCachedCommentRepo(commentDAO dao.CommentDAO, l logger.Logger) CommentRepository {
-	return &CachedCommentRepo{
+func NewCachedCommentRepository(commentDAO dao.CommentDAO, l logger.Logger) CommentRepository {
+	return &CachedCommentRepository{
 		dao: commentDAO,
 		l:   l,
 	}
 }
-func (c *CachedCommentRepo) FindByBiz(ctx context.Context, biz string, bizId, minID, limit int64) ([]domain.Comment, error) {
+
+func (c *CachedCommentRepository) FindByBiz(ctx context.Context, biz string, bizId, minID, limit int64) ([]domain.Comment, error) {
 	daoComments, err := c.dao.FindByBiz(ctx, biz, bizId, minID, limit)
 	if err != nil {
 		return nil, err
@@ -67,12 +68,12 @@ func (c *CachedCommentRepo) FindByBiz(ctx context.Context, biz string, bizId, mi
 	}
 	return res, eg.Wait()
 }
-func (c *CachedCommentRepo) DeleteComment(ctx context.Context, comment domain.Comment) error {
+func (c *CachedCommentRepository) DeleteComment(ctx context.Context, comment domain.Comment) error {
 	return c.dao.Delete(ctx, dao.Comment{
 		ID: comment.Id,
 	})
 }
-func (c *CachedCommentRepo) CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error) {
+func (c *CachedCommentRepository) CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error) {
 	id, err := c.dao.Insert(ctx, c.toEntity(comment))
 	if err != nil {
 		// 如果插入失败，直接返回错误
@@ -90,7 +91,7 @@ func (c *CachedCommentRepo) CreateComment(ctx context.Context, comment domain.Co
 	// 正常情况下，返回查询到的完整对象
 	return comments[0], nil
 }
-func (c *CachedCommentRepo) GetCommentByIds(ctx context.Context, ids []int64) ([]domain.Comment, error) {
+func (c *CachedCommentRepository) GetCommentByIds(ctx context.Context, ids []int64) ([]domain.Comment, error) {
 	vals, err := c.dao.FindOneByIDs(ctx, ids)
 	if err != nil {
 		return nil, err
@@ -102,7 +103,7 @@ func (c *CachedCommentRepo) GetCommentByIds(ctx context.Context, ids []int64) ([
 	}
 	return comments, nil
 }
-func (c *CachedCommentRepo) GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error) {
+func (c *CachedCommentRepository) GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error) {
 	cs, err := c.dao.FindRepliesByRid(ctx, rid, maxID, limit)
 	if err != nil {
 		return nil, err
@@ -113,7 +114,7 @@ func (c *CachedCommentRepo) GetMoreReplies(ctx context.Context, rid int64, maxID
 	}
 	return res, nil
 }
-func (c *CachedCommentRepo) toDomain(daoComment dao.Comment) domain.Comment {
+func (c *CachedCommentRepository) toDomain(daoComment dao.Comment) domain.Comment {
 	val := domain.Comment{
 		Id: daoComment.ID,
 		Commentator: domain.CommentatorInfo{
@@ -137,7 +138,7 @@ func (c *CachedCommentRepo) toDomain(daoComment dao.Comment) domain.Comment {
 	}
 	return val
 }
-func (c *CachedCommentRepo) toEntity(domainComment domain.Comment) dao.Comment {
+func (c *CachedCommentRepository) toEntity(domainComment domain.Comment) dao.Comment {
 	daoComment := dao.Comment{
 		ID:      domainComment.Id,
 		Uid:     domainComment.Commentator.ID,

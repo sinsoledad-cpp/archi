@@ -47,7 +47,16 @@ func InitApp() *App {
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewDefaultInteractiveService(interactiveRepository)
 	articleHandler := web.NewArticleHandler(articleService, interactiveService, logger)
-	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler)
+	commentDAO := dao.NewGORMCommentDAO(db)
+	commentRepository := repository.NewCachedCommentRepository(commentDAO, logger)
+	commentService := service.NewDefaultCommentService(commentRepository)
+	commentHandler := web.NewCommentHandler(commentService, logger)
+	followRelationDao := dao.NewGORMFollowRelationDAO(db)
+	followCache := cache.NewRedisFollowCache(cmdable)
+	followRepository := repository.NewCachedFollowRepository(followRelationDao, followCache, logger)
+	followRelationService := service.NewDefaultFollowRelationService(followRepository)
+	followHandler := web.NewFollowHandler(followRelationService, logger)
+	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler, commentHandler, followHandler)
 	readEventConsumer := article.NewReadEventConsumer(interactiveRepository, client, logger)
 	v2 := ioc.InitConsumers(readEventConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
@@ -79,8 +88,12 @@ var interactiveSvcProviderSet = wire.NewSet(cache.NewRedisInteractiveCache, dao.
 
 var rankingSvcProviderSet = wire.NewSet(cache.NewRedisRankingCache, cache.NewLocalRankingCache, repository.NewCachedRankingRepository, service.NewBatchRankingService)
 
+var commentSvcProviderSet = wire.NewSet(dao.NewGORMCommentDAO, repository.NewCachedCommentRepository, service.NewDefaultCommentService)
+
+var followSvcProviderSet = wire.NewSet(cache.NewRedisFollowCache, dao.NewGORMFollowRelationDAO, repository.NewCachedFollowRepository, service.NewDefaultFollowRelationService)
+
 var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer)
 
-var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler)
+var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler)
 
 var jobProviderSet = wire.NewSet(ioc.InitRankingJob, ioc.InitJobs)

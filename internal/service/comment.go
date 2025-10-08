@@ -17,16 +17,16 @@ type CommentService interface {
 	GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error)
 }
 
-type commentService struct {
+type DefaultCommentService struct {
 	repo repository.CommentRepository
 }
 
-func NewCommentSvc(repo repository.CommentRepository) CommentService {
-	return &commentService{
+func NewDefaultCommentService(repo repository.CommentRepository) CommentService {
+	return &DefaultCommentService{
 		repo: repo,
 	}
 }
-func (c *commentService) GetCommentList(ctx context.Context, biz string, bizId, minID, limit int64) ([]domain.Comment, error) {
+func (c *DefaultCommentService) GetCommentList(ctx context.Context, biz string, bizId, minID, limit int64) ([]domain.Comment, error) {
 	list, err := c.repo.FindByBiz(ctx, biz, bizId, minID, limit)
 	if err != nil {
 		return nil, err
@@ -34,15 +34,15 @@ func (c *commentService) GetCommentList(ctx context.Context, biz string, bizId, 
 	return list, err
 }
 
-func (c *commentService) DeleteComment(ctx context.Context, id int64) error {
+func (c *DefaultCommentService) DeleteComment(ctx context.Context, id int64) error {
 	return c.repo.DeleteComment(ctx, domain.Comment{
 		Id: id,
 	})
 }
 
-func (c *commentService) CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error) {
+func (c *DefaultCommentService) CreateComment(ctx context.Context, comment domain.Comment) (domain.Comment, error) {
 	return c.repo.CreateComment(ctx, comment)
 }
-func (c *commentService) GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error) {
+func (c *DefaultCommentService) GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error) {
 	return c.repo.GetMoreReplies(ctx, rid, maxID, limit)
 }

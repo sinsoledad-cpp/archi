@@ -19,6 +19,13 @@ type FollowHandler struct {
 	log logger.Logger
 }
 
+func NewFollowHandler(svc service.FollowRelationService, l logger.Logger) *FollowHandler {
+	return &FollowHandler{
+		svc: svc,
+		log: l,
+	}
+}
+
 // RegisterRoutes 注册与关注功能相关的所有路由
 func (h *FollowHandler) RegisterRoutes(server *gin.Engine) {
 	// 创建一个 /follow 的路由组，便于管理

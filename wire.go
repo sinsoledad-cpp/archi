@@ -61,6 +61,19 @@ var rankingSvcProviderSet = wire.NewSet(
 	service.NewBatchRankingService,
 )
 
+var commentSvcProviderSet = wire.NewSet(
+	dao.NewGORMCommentDAO,
+	repository.NewCachedCommentRepository,
+	service.NewDefaultCommentService,
+)
+
+var followSvcProviderSet = wire.NewSet(
+	cache.NewRedisFollowCache,
+	dao.NewGORMFollowRelationDAO,
+	repository.NewCachedFollowRepository,
+	service.NewDefaultFollowRelationService,
+)
+
 var eventsProviderSet = wire.NewSet(
 	ioc.InitSyncProducer,
 	ioc.InitConsumers,
@@ -73,6 +86,8 @@ var handlerProviderSet = wire.NewSet(
 	web.NewUserHandler,
 	//web.NewOAuth2WechatHandler,
 	web.NewArticleHandler,
+	web.NewCommentHandler,
+	web.NewFollowHandler,
 )
 
 var jobProviderSet = wire.NewSet(
@@ -90,6 +105,8 @@ func InitApp() *App {
 		articleSvcProviderSet,
 		interactiveSvcProviderSet,
 		rankingSvcProviderSet,
+		commentSvcProviderSet,
+		followSvcProviderSet,
 
 		handlerProviderSet,
 		jobProviderSet,

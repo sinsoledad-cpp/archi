@@ -21,21 +21,21 @@ type FollowRepository interface {
 	GetFollowStatics(ctx context.Context, uid int64) (domain.FollowStatics, error)
 }
 
-type CachedRelationRepository struct {
+type CachedFollowRepository struct {
 	dao   dao.FollowRelationDao
 	cache cache.FollowCache
 	l     logger.Logger
 }
 
-func NewFollowRelationRepository(dao dao.FollowRelationDao, cache cache.FollowCache, l logger.Logger) FollowRepository {
-	return &CachedRelationRepository{
+func NewCachedFollowRepository(dao dao.FollowRelationDao, cache cache.FollowCache, l logger.Logger) FollowRepository {
+	return &CachedFollowRepository{
 		dao:   dao,
 		cache: cache,
 		l:     l,
 	}
 }
 
-func (d *CachedRelationRepository) GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
+func (d *CachedFollowRepository) GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
 	followerList, err := d.dao.GetFollowerList(ctx, followee)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (d *CachedRelationRepository) GetFollower(ctx context.Context, followee int
 	return d.genFollowRelationList(followerList), nil
 }
 
-func (d *CachedRelationRepository) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
+func (d *CachedFollowRepository) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
 	followerList, err := d.dao.FollowRelationList(ctx, follower, offset, limit)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (d *CachedRelationRepository) GetFollowee(ctx context.Context, follower, of
 	return d.genFollowRelationList(followerList), nil
 }
 
-func (d *CachedRelationRepository) genFollowRelationList(followerList []dao.FollowRelation) []domain.FollowRelation {
+func (d *CachedFollowRepository) genFollowRelationList(followerList []dao.FollowRelation) []domain.FollowRelation {
 	res := make([]domain.FollowRelation, 0, len(followerList))
 	for _, c := range followerList {
 		res = append(res, d.toDomain(c))
@@ -59,7 +59,7 @@ func (d *CachedRelationRepository) genFollowRelationList(followerList []dao.Foll
 	return res
 }
 
-func (d *CachedRelationRepository) FollowInfo(ctx context.Context, follower int64, followee int64) (domain.FollowRelation, error) {
+func (d *CachedFollowRepository) FollowInfo(ctx context.Context, follower int64, followee int64) (domain.FollowRelation, error) {
 	c, err := d.dao.FollowRelationDetail(ctx, follower, followee)
 	if err != nil {
 		return domain.FollowRelation{}, err
@@ -67,7 +67,7 @@ func (d *CachedRelationRepository) FollowInfo(ctx context.Context, follower int6
 	return d.toDomain(c), nil
 }
 
-func (d *CachedRelationRepository) AddFollowRelation(ctx context.Context, c domain.FollowRelation) error {
+func (d *CachedFollowRepository) AddFollowRelation(ctx context.Context, c domain.FollowRelation) error {
 	err := d.dao.CreateFollowRelation(ctx, d.toEntity(c))
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func (d *CachedRelationRepository) AddFollowRelation(ctx context.Context, c doma
 	return d.cache.Follow(ctx, c.Follower, c.Followee)
 }
 
-func (d *CachedRelationRepository) InactiveFollowRelation(ctx context.Context, follower int64, followee int64) error {
+func (d *CachedFollowRepository) InactiveFollowRelation(ctx context.Context, follower int64, followee int64) error {
 	err := d.dao.UpdateStatus(ctx, followee, follower, dao.FollowRelationStatusInactive)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func (d *CachedRelationRepository) InactiveFollowRelation(ctx context.Context, f
 	return d.cache.CancelFollow(ctx, follower, followee)
 }
 
-func (d *CachedRelationRepository) GetFollowStatics(ctx context.Context, uid int64) (domain.FollowStatics, error) {
+func (d *CachedFollowRepository) GetFollowStatics(ctx context.Context, uid int64) (domain.FollowStatics, error) {
 	// 快路径
 	res, err := d.cache.StaticsInfo(ctx, uid)
 	if err == nil {
@@ -107,14 +107,14 @@ func (d *CachedRelationRepository) GetFollowStatics(ctx context.Context, uid int
 	}
 	return res, nil
 }
-func (d *CachedRelationRepository) toDomain(fr dao.FollowRelation) domain.FollowRelation {
+func (d *CachedFollowRepository) toDomain(fr dao.FollowRelation) domain.FollowRelation {
 	return domain.FollowRelation{
 		Followee: fr.Followee,
 		Follower: fr.Follower,
 	}
 }
 
-func (d *CachedRelationRepository) toEntity(c domain.FollowRelation) dao.FollowRelation {
+func (d *CachedFollowRepository) toEntity(c domain.FollowRelation) dao.FollowRelation {
 	return dao.FollowRelation{
 		Followee: c.Followee,
 		Follower: c.Follower,

@@ -89,3 +89,41 @@ services:
       - kafka
     networks:
       - net01
+#----------------------------------------------------------------------------------------------
+  # Elasticsearch 服务
+  es:
+    image: elasticsearch:7.12.0
+    container_name: es
+    restart: no
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx512m  # 注意：我将 Xms 稍微提高以保证稳定性
+      - "TZ=Asia/Shanghai" # 设置时区为上海
+    volumes:
+      - E:\Docker\es\config\elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - E:\Docker\es\data:/usr/share/elasticsearch/data
+      - E:\Docker\es\plugins:/usr/share/elasticsearch/plugins
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - net01
+
+  # Kibana 服务
+  kibana:
+    image: kibana:7.12.0
+    container_name: kibana
+    restart: no
+    environment:
+      # 关键配置：告诉 Kibana 去哪里找 Elasticsearch
+      # 'es' 是上面定义的 Elasticsearch 服务的名称
+      - ELASTICSEARCH_HOSTS=http://es:9200
+      - "TZ=Asia/Shanghai" # 设置时区为上海
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=xxxxxx
+    ports:
+      - "5601:5601"
+    depends_on:
+      - es  # 确保 Kibana 在 Elasticsearch 启动之后再启动
+    networks:
+      - net01

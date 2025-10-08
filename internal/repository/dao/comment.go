@@ -52,7 +52,7 @@ type GORMCommentDAO struct {
 	db *gorm.DB
 }
 
-func NewCommentDAO(db *gorm.DB) CommentDAO {
+func NewGORMCommentDAO(db *gorm.DB) CommentDAO {
 	return &GORMCommentDAO{
 		db: db,
 	}

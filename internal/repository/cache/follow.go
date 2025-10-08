@@ -27,6 +27,12 @@ type RedisFollowCache struct {
 	client redis.Cmdable
 }
 
+func NewRedisFollowCache(client redis.Cmdable) FollowCache {
+	return &RedisFollowCache{
+		client: client,
+	}
+}
+
 func (r *RedisFollowCache) StaticsInfo(ctx context.Context, uid int64) (domain.FollowStatics, error) {
 	data, err := r.client.HGetAll(ctx, r.staticsKey(uid)).Result()
 	if err != nil {

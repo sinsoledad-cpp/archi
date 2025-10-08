@@ -15,38 +15,38 @@ type FollowRelationService interface {
 	GetFollowStatic(ctx context.Context, uid int64) (domain.FollowStatics, error)
 }
 
-type followRelationService struct {
+type DefaultFollowRelationService struct {
 	repo repository.FollowRepository
 }
 
-func NewFollowRelationService(repo repository.FollowRepository) FollowRelationService {
-	return &followRelationService{
+func NewDefaultFollowRelationService(repo repository.FollowRepository) FollowRelationService {
+	return &DefaultFollowRelationService{
 		repo: repo,
 	}
 }
-func (f *followRelationService) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
+func (f *DefaultFollowRelationService) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
 	return f.repo.GetFollowee(ctx, follower, offset, limit)
 }
 
-func (f *followRelationService) GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
+func (f *DefaultFollowRelationService) GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
 	return f.repo.GetFollower(ctx, followee)
 }
 
-func (f *followRelationService) FollowInfo(ctx context.Context, follower, followee int64) (domain.FollowRelation, error) {
+func (f *DefaultFollowRelationService) FollowInfo(ctx context.Context, follower, followee int64) (domain.FollowRelation, error) {
 	val, err := f.repo.FollowInfo(ctx, follower, followee)
 	return val, err
 }
 
-func (f *followRelationService) Follow(ctx context.Context, follower, followee int64) error {
+func (f *DefaultFollowRelationService) Follow(ctx context.Context, follower, followee int64) error {
 	return f.repo.AddFollowRelation(ctx, domain.FollowRelation{
 		Followee: followee,
 		Follower: follower,
 	})
 }
-func (f *followRelationService) CancelFollow(ctx context.Context, follower, followee int64) error {
+func (f *DefaultFollowRelationService) CancelFollow(ctx context.Context, follower, followee int64) error {
 	return f.repo.InactiveFollowRelation(ctx, follower, followee)
 }
 
-func (f *followRelationService) GetFollowStatic(ctx context.Context, uid int64) (domain.FollowStatics, error) {
+func (f *DefaultFollowRelationService) GetFollowStatic(ctx context.Context, uid int64) (domain.FollowStatics, error) {
 	return f.repo.GetFollowStatics(ctx, uid)
 }
