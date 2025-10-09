@@ -8,6 +8,8 @@ package main
 
 import (
 	"archi/internal/event/article"
+	feed2 "archi/internal/event/feed"
+	"archi/internal/event/follow"
 	search3 "archi/internal/event/search"
 	"archi/internal/event/tag"
 	"archi/internal/event/user"
@@ -58,10 +60,11 @@ func InitApp() *App {
 	commentRepository := repository.NewCachedCommentRepository(commentDAO, logger)
 	commentService := service.NewDefaultCommentService(commentRepository)
 	commentHandler := web.NewCommentHandler(commentService, logger)
+	followProducer := follow.NewFollowEventProducer(syncProducer)
 	followRelationDao := dao.NewGORMFollowRelationDAO(db)
 	followCache := cache.NewRedisFollowCache(cmdable)
 	followRepository := repository.NewCachedFollowRepository(followRelationDao, followCache, logger)
-	followRelationService := service.NewDefaultFollowRelationService(followRepository, logger)
+	followRelationService := service.NewDefaultFollowRelationService(followProducer, followRepository, logger)
 	followHandler := web.NewFollowHandler(followRelationService, logger)
 	tagDAO := dao.NewGORMTagDAO(db)
 	tagCache := cache.NewRedisTagCache(cmdable)
@@ -92,7 +95,8 @@ func InitApp() *App {
 	userConsumer := search3.NewUserConsumer(client, logger, syncService)
 	articleConsumer := search3.NewArticleConsumer(client, logger, syncService)
 	syncDataEventConsumer := search3.NewSyncDataEventConsumer(syncService, client, logger)
-	v3 := ioc.InitConsumers(readEventConsumer, userConsumer, articleConsumer, syncDataEventConsumer)
+	followEventConsumer := feed2.NewFollowEventConsumer(feedService, client, logger)
+	v3 := ioc.InitConsumers(readEventConsumer, userConsumer, articleConsumer, syncDataEventConsumer, followEventConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
 	localRankingCache := cache.NewLocalRankingCache()
 	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, localRankingCache)
@@ -132,7 +136,7 @@ var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, 
 
 var feedSvcProviderSet = wire.NewSet(cache.NewFeedEventCache, dao.NewFeedPullEventDAO, dao.NewFeedPushEventDAO, repository.NewFeedEventRepo, feed.NewFeedService, ioc.RegisterFeedHandler)
 
-var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, search3.NewSyncDataEventConsumer, article.NewSaramaSyncProducer, article.NewReadEventConsumer, search3.NewArticleConsumer, tag.NewSaramaSyncProducer, user.NewSaramaSyncProducer, search3.NewUserConsumer)
+var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, search3.NewSyncDataEventConsumer, article.NewSaramaSyncProducer, article.NewReadEventConsumer, search3.NewArticleConsumer, tag.NewSaramaSyncProducer, user.NewSaramaSyncProducer, search3.NewUserConsumer, follow.NewFollowEventProducer, feed2.NewFollowEventConsumer)
 
 var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler, web.NewTagHandler, web.NewSearchHandler, web.NewFeedHandler)
 

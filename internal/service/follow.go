@@ -2,6 +2,7 @@ package service
 
 import (
 	"archi/internal/domain"
+	"archi/internal/event/follow"
 	"archi/internal/repository"
 	"archi/pkg/logger"
 	"context"
@@ -17,14 +18,16 @@ type FollowRelationService interface {
 }
 
 type DefaultFollowRelationService struct {
-	repo repository.FollowRepository
-	l    logger.Logger
+	producer follow.Producer
+	repo     repository.FollowRepository
+	l        logger.Logger
 }
 
-func NewDefaultFollowRelationService(repo repository.FollowRepository, logger logger.Logger) FollowRelationService {
+func NewDefaultFollowRelationService(producer follow.Producer, repo repository.FollowRepository, logger logger.Logger) FollowRelationService {
 	return &DefaultFollowRelationService{
-		repo: repo,
-		l:    logger,
+		producer: producer,
+		repo:     repo,
+		l:        logger,
 	}
 }
 func (f *DefaultFollowRelationService) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
@@ -48,7 +51,20 @@ func (f *DefaultFollowRelationService) Follow(ctx context.Context, follower, fol
 	if err != nil {
 		return err
 	}
-
+	go func() {
+		// 4. 检查错误并记录日志
+		err := f.producer.ProduceFollowEvent(follow.Event{
+			Follower: follower,
+			Followee: followee,
+		})
+		if err != nil {
+			// 使用结构化日志记录错误和关键上下文信息
+			f.l.Error("发送关注事件失败",
+				logger.Int64("follower", follower),
+				logger.Int64("followee", followee),
+				logger.Error(err))
+		}
+	}()
 	return nil
 }
 func (f *DefaultFollowRelationService) CancelFollow(ctx context.Context, follower, followee int64) error {

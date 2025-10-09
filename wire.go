@@ -4,6 +4,8 @@ package main
 
 import (
 	"archi/internal/event/article"
+	evtfeed "archi/internal/event/feed"
+	"archi/internal/event/follow"
 	searchCons "archi/internal/event/search"
 	"archi/internal/event/tag"
 	"archi/internal/event/user"
@@ -113,12 +115,18 @@ var eventsProviderSet = wire.NewSet(
 	ioc.InitSyncProducer,
 	ioc.InitConsumers,
 	searchCons.NewSyncDataEventConsumer,
+	// search-article article-read
 	article.NewSaramaSyncProducer,
 	article.NewReadEventConsumer,
 	searchCons.NewArticleConsumer,
+	//  search-tag
 	tag.NewSaramaSyncProducer,
+	//  search-user
 	user.NewSaramaSyncProducer,
 	searchCons.NewUserConsumer,
+	// feed-follow
+	follow.NewFollowEventProducer,
+	evtfeed.NewFollowEventConsumer,
 )
 
 var handlerProviderSet = wire.NewSet(
