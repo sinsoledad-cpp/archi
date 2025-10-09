@@ -23,7 +23,7 @@ var thirdPartyProviderSet = wire.NewSet(
 	ioc.InitRedis,
 	ioc.InitRlockClient,
 	ioc.InitSaramaClient,
-	//ioc.InitESClient,
+	ioc.InitESClient,
 )
 
 var userSvcProviderSet = wire.NewSet(
@@ -109,6 +109,7 @@ var handlerProviderSet = wire.NewSet(
 	web.NewCommentHandler,
 	web.NewFollowHandler,
 	web.NewTagHandler,
+	web.NewSearchHandler,
 )
 
 var jobProviderSet = wire.NewSet(
@@ -129,6 +130,7 @@ func InitApp() *App {
 		commentSvcProviderSet,
 		followSvcProviderSet,
 		tagSvcProviderSet,
+		searchSvcProviderSet,
 
 		handlerProviderSet,
 		jobProviderSet,

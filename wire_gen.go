@@ -65,7 +65,15 @@ func InitApp() *App {
 	tagProducer := tag.NewSaramaSyncProducer(syncProducer)
 	tagService := service.NewDefaultTagService(tagRepository, tagProducer, logger)
 	tagHandler := web.NewTagHandler(tagService, logger)
-	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler, commentHandler, followHandler, tagHandler)
+	elasticClient := ioc.InitESClient()
+	searchUserDAO := search.NewESUserDAO(elasticClient)
+	searchUserRepository := search2.NewDefaultUserRepository(searchUserDAO)
+	searchArticleDAO := search.NewESArticleDAO(elasticClient)
+	searchTagDAO := search.NewESTagDAO(elasticClient)
+	searchArticleRepository := search2.NewDefaultArticleRepository(searchArticleDAO, searchTagDAO)
+	searchService := service.NewDefaultSearchService(searchUserRepository, searchArticleRepository)
+	searchHandler := web.NewSearchHandler(searchService)
+	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler, commentHandler, followHandler, tagHandler, searchHandler)
 	readEventConsumer := article.NewReadEventConsumer(interactiveRepository, client, logger)
 	v2 := ioc.InitConsumers(readEventConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
@@ -85,7 +93,7 @@ func InitApp() *App {
 
 // wire.go:
 
-var thirdPartyProviderSet = wire.NewSet(ioc.InitLogger, ioc.InitMySQL, ioc.InitRedis, ioc.InitRlockClient, ioc.InitSaramaClient)
+var thirdPartyProviderSet = wire.NewSet(ioc.InitLogger, ioc.InitMySQL, ioc.InitRedis, ioc.InitRlockClient, ioc.InitSaramaClient, ioc.InitESClient)
 
 var userSvcProviderSet = wire.NewSet(cache.NewRedisUserCache, dao.NewGORMUserDAO, repository.NewCachedUserRepository, service.NewUserService)
 
@@ -107,6 +115,6 @@ var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, 
 
 var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer, tag.NewSaramaSyncProducer)
 
-var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler, web.NewTagHandler)
+var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler, web.NewTagHandler, web.NewSearchHandler)
 
 var jobProviderSet = wire.NewSet(ioc.InitRankingJob, ioc.InitJobs)

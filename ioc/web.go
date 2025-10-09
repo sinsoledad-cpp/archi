@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger, userHdl *web.UserHandler, artHdl *web.ArticleHandler, comHdl *web.CommentHandler, fHdl *web.FollowHandler, tagHdl *web.TagHandler) *gin.Engine {
+func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger, userHdl *web.UserHandler, artHdl *web.ArticleHandler, comHdl *web.CommentHandler, fHdl *web.FollowHandler, tagHdl *web.TagHandler, searchHdl *web.SearchHandler) *gin.Engine {
 	ginx.SetLogger(l)
 	gin.ForceConsoleColor()
 	engine := gin.Default()
@@ -25,6 +25,7 @@ func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger, userHdl *web.
 	comHdl.RegisterRoutes(engine)
 	fHdl.RegisterRoutes(engine)
 	tagHdl.RegisterRoutes(engine)
+	searchHdl.RegisterRoutes(engine)
 	return engine
 }
 
