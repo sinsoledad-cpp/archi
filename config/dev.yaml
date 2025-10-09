@@ -16,5 +16,5 @@ kafka:
     - "localhost:9092"
 
 es:
-  urls: "https://localhost:9200"
+  url: "http://127.0.0.1:9200"
   sniff: false

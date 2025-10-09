@@ -99,10 +99,10 @@ services:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms256m -Xmx512m  # 注意：我将 Xms 稍微提高以保证稳定性
       - "TZ=Asia/Shanghai" # 设置时区为上海
-    volumes:
-      - E:\Docker\es\config\elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
-      - E:\Docker\es\data:/usr/share/elasticsearch/data
-      - E:\Docker\es\plugins:/usr/share/elasticsearch/plugins
+#    volumes:
+#      - E:\Docker\es\config\elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+#      - E:\Docker\es\data:/usr/share/elasticsearch/data
+#      - E:\Docker\es\plugins:/usr/share/elasticsearch/plugins
     ports:
       - "9200:9200"
       - "9300:9300"
