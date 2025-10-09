@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/olivere/elastic/v7"
 	"strconv"
-	"strings"
 )
 
 const UserIndexName = "user_index"
@@ -33,16 +32,24 @@ func NewESUserDAO(client *elastic.Client) UserDAO {
 }
 
 func (h *ESUserDAO) Search(ctx context.Context, keywords []string) ([]User, error) {
-	// 假定上面传入的 keywords 是经过了处理的
-	queryString := strings.Join(keywords, " ")
-	//query := elastic.NewBoolQuery().Must(elastic.NewMatchQuery("nickname", queryString))
-	query := elastic.NewBoolQuery().Should(
-		// 对 nickname 字段使用 match 查询，支持全文搜索
-		elastic.NewMatchQuery("nickname", queryString),
-		// 对 email 和 phone 字段使用 term 查询，进行精确匹配
-		elastic.NewTermQuery("email", queryString),
-		elastic.NewTermQuery("phone", queryString),
-	)
+	// 创建一个布尔查询
+	query := elastic.NewBoolQuery()
+
+	// 遍历每一个关键词
+	for _, keyword := range keywords {
+		// 为每个关键词创建一组 OR 条件
+		// 只要 nickname, email, 或 phone 中任何一个字段匹配到该关键词即可
+		shouldQueries := []elastic.Query{
+			elastic.NewMatchQuery("nickname", keyword),
+			elastic.NewTermQuery("email", keyword),
+			elastic.NewTermQuery("phone", keyword),
+		}
+		// 将这组 OR 条件作为一个整体，添加到外层的 Should 查询中
+		// 这意味着，只要满足任何一个关键词的匹配条件，文档就会被选中
+		query.Should(elastic.NewBoolQuery().Should(shouldQueries...))
+	}
+	// 至少要匹配上一个 Should 子句
+	query.MinimumNumberShouldMatch(1)
 	resp, err := h.client.Search(UserIndexName).Query(query).Do(ctx)
 	if err != nil {
 		return nil, err
