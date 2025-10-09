@@ -2,6 +2,7 @@ package service
 
 import (
 	"archi/internal/domain"
+	"archi/internal/event/user"
 	"archi/internal/repository"
 	"archi/pkg/logger"
 	"context"
@@ -9,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 var (
@@ -28,14 +30,16 @@ type UserService interface {
 }
 
 type DefaultUserService struct {
-	l    logger.Logger
-	repo repository.UserRepository
+	l            logger.Logger
+	syncProducer user.Producer
+	repo         repository.UserRepository
 }
 
-func NewUserService(log logger.Logger, repo repository.UserRepository) UserService {
+func NewUserService(log logger.Logger, repo repository.UserRepository, syncProducer user.Producer) UserService {
 	return &DefaultUserService{
-		l:    log,
-		repo: repo,
+		l:            log,
+		syncProducer: syncProducer,
+		repo:         repo,
 	}
 }
 
@@ -45,7 +49,20 @@ func (svc *DefaultUserService) Signup(ctx context.Context, u domain.User) error 
 		return err
 	}
 	u.Password = string(hash)
-	return svc.repo.Create(ctx, u)
+	uu, er := svc.repo.Create(ctx, u)
+	if er == nil {
+		go func() {
+			bgCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
+			er := svc.syncProducer.ProduceSyncEvent(bgCtx, uu)
+			if er != nil {
+				svc.l.Error("发送用户同步事件失败",
+					logger.Int64("uid", uu.ID),
+					logger.Error(er))
+			}
+		}()
+	}
+	return er
 }
 
 func (svc *DefaultUserService) Login(ctx context.Context, email string, password string) (domain.User, error) {
@@ -118,7 +135,7 @@ func (svc *DefaultUserService) FindOrCreate(ctx context.Context, phone string) (
 		return u, err
 	}
 	// 用户没找到
-	err = svc.repo.Create(ctx, domain.User{
+	_, err = svc.repo.Create(ctx, domain.User{
 		Phone: phone,
 	})
 	// 有两种可能，一种是 err 恰好是唯一索引冲突（phone）
@@ -140,7 +157,7 @@ func (svc *DefaultUserService) FindOrCreateByWechat(ctx context.Context, wechatI
 	// JSON 格式的 wechatInfo
 	//zap.L().Info("新用户", zap.Any("wechatInfo", wechatInfo))
 	//svc.logger.Info("新用户", zap.Any("wechatInfo", wechatInfo))
-	err = svc.repo.Create(ctx, domain.User{
+	_, err = svc.repo.Create(ctx, domain.User{
 		WechatInfo: wechatInfo,
 	})
 	if err != nil && !errors.Is(err, repository.ErrDuplicateWechat) {

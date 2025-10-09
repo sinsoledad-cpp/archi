@@ -4,7 +4,9 @@ package main
 
 import (
 	"archi/internal/event/article"
+	searchCons "archi/internal/event/search"
 	"archi/internal/event/tag"
+	"archi/internal/event/user"
 	"archi/internal/repository"
 	"archi/internal/repository/cache"
 	"archi/internal/repository/dao"
@@ -92,13 +94,19 @@ var searchSvcProviderSet = wire.NewSet(
 	searchRepo.NewDefaultUserRepository,
 	searchRepo.NewDefaultArticleRepository,
 	service.NewDefaultSearchService,
+	searchDAO.NewESAnyDAO,
+	searchRepo.NewDefaultAnyRepository,
+	service.NewDefaultSyncService,
 )
+
 var eventsProviderSet = wire.NewSet(
 	ioc.InitSyncProducer,
 	ioc.InitConsumers,
 	article.NewSaramaSyncProducer,
 	article.NewReadEventConsumer,
 	tag.NewSaramaSyncProducer,
+	user.NewSaramaSyncProducer,
+	searchCons.NewUserConsumer,
 )
 
 var handlerProviderSet = wire.NewSet(

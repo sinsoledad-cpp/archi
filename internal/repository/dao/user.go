@@ -38,7 +38,7 @@ var (
 )
 
 type UserDAO interface {
-	Insert(ctx context.Context, user User) error
+	Insert(ctx context.Context, user User) (User, error)
 	FindByEmail(ctx context.Context, email string) (User, error)
 	UpdateAvatar(ctx context.Context, id int64, avatar string) error
 	UpdateById(ctx context.Context, entity User) error
@@ -56,7 +56,7 @@ func NewGORMUserDAO(db *gorm.DB) UserDAO {
 		db: db,
 	}
 }
-func (g *GORMUserDAO) Insert(ctx context.Context, user User) error {
+func (g *GORMUserDAO) Insert(ctx context.Context, user User) (User, error) {
 	now := time.Now().UnixMilli()
 	user.Ctime = now
 	user.Utime = now
@@ -68,19 +68,19 @@ func (g *GORMUserDAO) Insert(ctx context.Context, user User) error {
 		if e.Number == uniqueIndexErrNo {
 
 			if strings.Contains(e.Message, "email") {
-				return ErrDuplicateEmail
+				return User{}, ErrDuplicateEmail
 			}
 			if strings.Contains(e.Message, "phone") {
-				return ErrDuplicatePhone
+				return User{}, ErrDuplicateEmail
 			}
 			if strings.Contains(e.Message, "wechat_open_id") {
-				return ErrDuplicateWechat
+				return User{}, ErrDuplicateEmail
 			}
-			return ErrDuplicateEmail
+			return User{}, ErrDuplicateEmail
 		}
 
 	}
-	return err
+	return user, err
 }
 
 func (g *GORMUserDAO) FindByEmail(ctx context.Context, email string) (User, error) {

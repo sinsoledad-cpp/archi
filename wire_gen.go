@@ -8,7 +8,9 @@ package main
 
 import (
 	"archi/internal/event/article"
+	search3 "archi/internal/event/search"
 	"archi/internal/event/tag"
+	"archi/internal/event/user"
 	"archi/internal/repository"
 	"archi/internal/repository/cache"
 	"archi/internal/repository/dao"
@@ -32,7 +34,10 @@ func InitApp() *App {
 	userDAO := dao.NewGORMUserDAO(db)
 	userCache := cache.NewRedisUserCache(cmdable)
 	userRepository := repository.NewCachedUserRepository(userDAO, userCache)
-	userService := service.NewUserService(logger, userRepository)
+	client := ioc.InitSaramaClient()
+	syncProducer := ioc.InitSyncProducer(client)
+	producer := user.NewSaramaSyncProducer(syncProducer)
+	userService := service.NewUserService(logger, userRepository, producer)
 	codeCache := cache.NewRedisCodeCache(cmdable)
 	codeRepository := repository.NewCachedCodeRepository(codeCache)
 	smsService := ioc.InitSMSService()
@@ -41,10 +46,8 @@ func InitApp() *App {
 	articleDAO := dao.NewGORMArticleDAO(db)
 	articleCache := cache.NewRedisArticleCache(cmdable)
 	articleRepository := repository.NewCachedArticleRepository(articleDAO, userRepository, articleCache)
-	client := ioc.InitSaramaClient()
-	syncProducer := ioc.InitSyncProducer(client)
-	producer := article.NewSaramaSyncProducer(syncProducer)
-	articleService := service.NewDefaultArticleService(articleRepository, producer)
+	articleProducer := article.NewSaramaSyncProducer(syncProducer)
+	articleService := service.NewDefaultArticleService(articleRepository, articleProducer)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDAO, interactiveCache, logger)
@@ -75,7 +78,11 @@ func InitApp() *App {
 	searchHandler := web.NewSearchHandler(searchService)
 	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler, commentHandler, followHandler, tagHandler, searchHandler)
 	readEventConsumer := article.NewReadEventConsumer(interactiveRepository, client, logger)
-	v2 := ioc.InitConsumers(readEventConsumer)
+	anyDAO := search.NewESAnyDAO(elasticClient)
+	anyRepository := search2.NewDefaultAnyRepository(anyDAO)
+	syncService := service.NewDefaultSyncService(anyRepository, searchUserRepository, searchArticleRepository)
+	userConsumer := search3.NewUserConsumer(client, logger, syncService)
+	v2 := ioc.InitConsumers(readEventConsumer, userConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
 	localRankingCache := cache.NewLocalRankingCache()
 	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, localRankingCache)
@@ -111,9 +118,9 @@ var followSvcProviderSet = wire.NewSet(cache.NewRedisFollowCache, dao.NewGORMFol
 
 var tagSvcProviderSet = wire.NewSet(cache.NewRedisTagCache, dao.NewGORMTagDAO, repository.NewCachedTagRepository, service.NewDefaultTagService)
 
-var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, search.NewESArticleDAO, search2.NewDefaultUserRepository, search2.NewDefaultArticleRepository, service.NewDefaultSearchService)
+var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, search.NewESArticleDAO, search2.NewDefaultUserRepository, search2.NewDefaultArticleRepository, service.NewDefaultSearchService, search.NewESAnyDAO, search2.NewDefaultAnyRepository, service.NewDefaultSyncService)
 
-var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer, tag.NewSaramaSyncProducer)
+var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer, tag.NewSaramaSyncProducer, user.NewSaramaSyncProducer, search3.NewUserConsumer)
 
 var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler, web.NewTagHandler, web.NewSearchHandler)
 

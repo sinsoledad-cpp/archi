@@ -3,6 +3,7 @@ package ioc
 import (
 	"archi/internal/event"
 	"archi/internal/event/article"
+	"archi/internal/event/search"
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 )
@@ -38,6 +39,6 @@ func InitSyncProducer(c sarama.Client) sarama.SyncProducer {
 	}
 	return p
 }
-func InitConsumers(c1 *article.ReadEventConsumer) []event.Consumer {
-	return []event.Consumer{c1}
+func InitConsumers(c1 *article.ReadEventConsumer, c2 *search.UserConsumer) []event.Consumer {
+	return []event.Consumer{c1, c2}
 }
