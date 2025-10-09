@@ -2,9 +2,11 @@ package web
 
 import (
 	"archi/internal/service"
+	"archi/internal/web/errs"
 	"archi/internal/web/middleware/jwt"
 	"archi/pkg/ginx"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 // SearchHandler 负责处理搜索相关的HTTP请求
@@ -21,7 +23,7 @@ func NewSearchHandler(svc service.SearchService) *SearchHandler {
 
 // RegisterRoutes 注册搜索相关的路由
 func (h *SearchHandler) RegisterRoutes(e *gin.Engine) {
-	sg := e.Group("/api/search")
+	sg := e.Group("/search")
 	// 使用 POST /api/search/ 接口进行搜索，需要JWT认证
 	sg.POST("/", ginx.WrapBodyAndClaims(h.Search))
 }
@@ -38,11 +40,13 @@ func (h *SearchHandler) Search(ctx *gin.Context, req SearchReq, uc jwt.UserClaim
 	res, err := h.svc.Search(ctx, uc.Uid, req.Expression)
 	if err != nil {
 		return ginx.Result{
-			Code: 5,
+			Code: errs.SearchInternalServerError,
 			Msg:  "系统错误",
 		}, err
 	}
 	return ginx.Result{
+		Code: http.StatusOK,
+		Msg:  "搜索成功",
 		Data: res,
 	}, nil
 }
