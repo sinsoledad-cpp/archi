@@ -42,7 +42,7 @@ func (h *TagHandler) CreateTag(ctx *gin.Context, req CreateTagReq, uc jwt.UserCl
 	if err != nil {
 
 		return ginx.Result{
-			Code: errs.UserInternalServerError,
+			Code: errs.TagInternalServerError,
 			Msg:  "系统错误",
 		}, err
 	}
@@ -63,7 +63,7 @@ func (h *TagHandler) AttachTags(ctx *gin.Context, req AttachTagsReq, uc jwt.User
 	err := h.svc.AttachTags(ctx, uc.Uid, req.Biz, req.BizId, req.Tags)
 	if err != nil {
 		return ginx.Result{
-			Code: errs.UserInternalServerError,
+			Code: errs.TagInternalServerError,
 			Msg:  "系统错误",
 		}, err
 	}
@@ -82,7 +82,7 @@ func (h *TagHandler) GetTags(ctx *gin.Context, uc jwt.UserClaims) (ginx.Result, 
 	tags, err := h.svc.GetTags(ctx, uc.Uid)
 	if err != nil {
 		return ginx.Result{
-			Code: errs.UserInternalServerError,
+			Code: errs.TagInternalServerError,
 			Msg:  "系统错误",
 		}, err
 	}
@@ -110,7 +110,7 @@ func (h *TagHandler) GetBizTags(ctx *gin.Context, uc jwt.UserClaims) (ginx.Resul
 	tags, err := h.svc.GetBizTags(ctx, uc.Uid, biz, bizId)
 	if err != nil {
 		return ginx.Result{
-			Code: errs.UserInternalServerError,
+			Code: errs.TagInternalServerError,
 			Msg:  "系统错误",
 		}, err
 	}

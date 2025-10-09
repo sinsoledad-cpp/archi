@@ -3,7 +3,6 @@ package feed
 import (
 	"archi/internal/domain"
 	"archi/internal/repository"
-	"archi/internal/service"
 	"context"
 	"fmt"
 	"github.com/ecodeclub/ekit/slice"
@@ -16,8 +15,7 @@ type feedService struct {
 	repo       repository.FeedEventRepo
 	handlerMap map[string]Handler
 	//followClient followv1.FollowServiceClient
-
-	followSvc service.FollowRelationService
+	//followSvc service.FollowRelationService
 }
 
 func NewFeedService(repo repository.FeedEventRepo, handlerMap map[string]Handler) Service {
@@ -44,48 +42,48 @@ func (f *feedService) CreateFeedEvent(ctx context.Context, feed domain.FeedEvent
 }
 
 // GetFeedEventListV1 不依赖于 Handler 的直接查询
-func (f *feedService) GetFeedEventListV1(ctx context.Context, uid int64, timestamp, limit int64) ([]domain.FeedEvent, error) {
-	var eg errgroup.Group
-	var mu sync.RWMutex
-	res := make([]domain.FeedEvent, 0, limit*2)
-	eg.Go(func() error {
-		resp, rerr := f.followSvc.GetFollowee(ctx, uid, 0, 200)
-		//	&followv1.GetFolloweeRequest{
-		//	Follower: uid,
-		//	Offset:   0,
-		//	Limit:    200,
-		//})
-		if rerr != nil {
-			return rerr
-		}
-		followeeIds := slice.Map(resp, func(idx int, src domain.FollowRelation) int64 {
-			return src.Followee
-		})
-		events, err := f.repo.FindPullEvents(ctx, followeeIds, timestamp, limit)
-		if err != nil {
-			return err
-		}
-		mu.Lock()
-		res = append(res, events...)
-		mu.Unlock()
-		return nil
-	})
-	eg.Go(func() error {
-		events, err := f.repo.FindPushEvents(ctx, uid, timestamp, limit)
-		if err != nil {
-			return err
-		}
-		mu.Lock()
-		res = append(res, events...)
-		mu.Unlock()
-		return nil
-	})
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Ctime.Unix() > res[j].Ctime.Unix()
-	})
-	err := eg.Wait()
-	return res[:slice.Min[int]([]int{int(limit), len(res)})], err
-}
+//func (f *feedService) GetFeedEventListV1(ctx context.Context, uid int64, timestamp, limit int64) ([]domain.FeedEvent, error) {
+//	var eg errgroup.Group
+//	var mu sync.RWMutex
+//	res := make([]domain.FeedEvent, 0, limit*2)
+//	eg.Go(func() error {
+//		resp, rerr := f.followSvc.GetFollowee(ctx, uid, 0, 200)
+//		//	&followv1.GetFolloweeRequest{
+//		//	Follower: uid,
+//		//	Offset:   0,
+//		//	Limit:    200,
+//		//})
+//		if rerr != nil {
+//			return rerr
+//		}
+//		followeeIds := slice.Map(resp, func(idx int, src domain.FollowRelation) int64 {
+//			return src.Followee
+//		})
+//		events, err := f.repo.FindPullEvents(ctx, followeeIds, timestamp, limit)
+//		if err != nil {
+//			return err
+//		}
+//		mu.Lock()
+//		res = append(res, events...)
+//		mu.Unlock()
+//		return nil
+//	})
+//	eg.Go(func() error {
+//		events, err := f.repo.FindPushEvents(ctx, uid, timestamp, limit)
+//		if err != nil {
+//			return err
+//		}
+//		mu.Lock()
+//		res = append(res, events...)
+//		mu.Unlock()
+//		return nil
+//	})
+//	sort.Slice(res, func(i, j int) bool {
+//		return res[i].Ctime.Unix() > res[j].Ctime.Unix()
+//	})
+//	err := eg.Wait()
+//	return res[:slice.Min[int]([]int{int(limit), len(res)})], err
+//}
 
 func (f *feedService) GetFeedEventList(ctx context.Context, uid int64, timestamp, limit int64) ([]domain.FeedEvent, error) {
 	var eg errgroup.Group

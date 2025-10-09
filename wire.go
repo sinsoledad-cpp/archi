@@ -13,6 +13,7 @@ import (
 	searchDAO "archi/internal/repository/dao/search"
 	searchRepo "archi/internal/repository/search"
 	"archi/internal/service"
+	"archi/internal/service/feed"
 	"archi/internal/web"
 	"archi/internal/web/middleware/jwt"
 	"archi/ioc"
@@ -99,6 +100,15 @@ var searchSvcProviderSet = wire.NewSet(
 	service.NewDefaultSyncService,
 )
 
+var feedSvcProviderSet = wire.NewSet(
+	cache.NewFeedEventCache,
+	dao.NewFeedPullEventDAO,
+	dao.NewFeedPushEventDAO,
+	repository.NewFeedEventRepo,
+	feed.NewFeedService,
+	ioc.RegisterFeedHandler,
+)
+
 var eventsProviderSet = wire.NewSet(
 	ioc.InitSyncProducer,
 	ioc.InitConsumers,
@@ -120,6 +130,7 @@ var handlerProviderSet = wire.NewSet(
 	web.NewFollowHandler,
 	web.NewTagHandler,
 	web.NewSearchHandler,
+	web.NewFeedHandler,
 )
 
 var jobProviderSet = wire.NewSet(
@@ -141,6 +152,7 @@ func InitApp() *App {
 		followSvcProviderSet,
 		tagSvcProviderSet,
 		searchSvcProviderSet,
+		feedSvcProviderSet,
 
 		handlerProviderSet,
 		jobProviderSet,

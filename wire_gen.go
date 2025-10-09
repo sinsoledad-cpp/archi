@@ -17,6 +17,7 @@ import (
 	"archi/internal/repository/dao/search"
 	search2 "archi/internal/repository/search"
 	"archi/internal/service"
+	"archi/internal/service/feed"
 	"archi/internal/web"
 	"archi/internal/web/middleware/jwt"
 	"archi/ioc"
@@ -76,7 +77,14 @@ func InitApp() *App {
 	searchArticleRepository := search2.NewDefaultArticleRepository(searchArticleDAO, searchTagDAO)
 	searchService := service.NewDefaultSearchService(searchUserRepository, searchArticleRepository)
 	searchHandler := web.NewSearchHandler(searchService)
-	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler, commentHandler, followHandler, tagHandler, searchHandler)
+	feedPullEventDAO := dao.NewFeedPullEventDAO(db)
+	feedPushEventDAO := dao.NewFeedPushEventDAO(db)
+	feedEventCache := cache.NewFeedEventCache(cmdable)
+	feedEventRepo := repository.NewFeedEventRepo(feedPullEventDAO, feedPushEventDAO, feedEventCache)
+	v2 := ioc.RegisterFeedHandler(feedEventRepo, followRelationService)
+	feedService := feed.NewFeedService(feedEventRepo, v2)
+	feedHandler := web.NewFeedHandler(feedService, logger)
+	engine := ioc.InitWebEngine(v, logger, userHandler, articleHandler, commentHandler, followHandler, tagHandler, searchHandler, feedHandler)
 	readEventConsumer := article.NewReadEventConsumer(interactiveRepository, client, logger)
 	anyDAO := search.NewESAnyDAO(elasticClient)
 	anyRepository := search2.NewDefaultAnyRepository(anyDAO)
@@ -84,7 +92,7 @@ func InitApp() *App {
 	userConsumer := search3.NewUserConsumer(client, logger, syncService)
 	articleConsumer := search3.NewArticleConsumer(client, logger, syncService)
 	syncDataEventConsumer := search3.NewSyncDataEventConsumer(syncService, client, logger)
-	v2 := ioc.InitConsumers(readEventConsumer, userConsumer, articleConsumer, syncDataEventConsumer)
+	v3 := ioc.InitConsumers(readEventConsumer, userConsumer, articleConsumer, syncDataEventConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
 	localRankingCache := cache.NewLocalRankingCache()
 	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, localRankingCache)
@@ -94,7 +102,7 @@ func InitApp() *App {
 	cron := ioc.InitJobs(logger, rankingJob)
 	app := &App{
 		engine:    engine,
-		consumers: v2,
+		consumers: v3,
 		cron:      cron,
 	}
 	return app
@@ -122,8 +130,10 @@ var tagSvcProviderSet = wire.NewSet(cache.NewRedisTagCache, dao.NewGORMTagDAO, r
 
 var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, search.NewESArticleDAO, search2.NewDefaultUserRepository, search2.NewDefaultArticleRepository, service.NewDefaultSearchService, search.NewESAnyDAO, search2.NewDefaultAnyRepository, service.NewDefaultSyncService)
 
+var feedSvcProviderSet = wire.NewSet(cache.NewFeedEventCache, dao.NewFeedPullEventDAO, dao.NewFeedPushEventDAO, repository.NewFeedEventRepo, feed.NewFeedService, ioc.RegisterFeedHandler)
+
 var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, search3.NewSyncDataEventConsumer, article.NewSaramaSyncProducer, article.NewReadEventConsumer, search3.NewArticleConsumer, tag.NewSaramaSyncProducer, user.NewSaramaSyncProducer, search3.NewUserConsumer)
 
-var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler, web.NewTagHandler, web.NewSearchHandler)
+var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler, web.NewTagHandler, web.NewSearchHandler, web.NewFeedHandler)
 
 var jobProviderSet = wire.NewSet(ioc.InitRankingJob, ioc.InitJobs)
