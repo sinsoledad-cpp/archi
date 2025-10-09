@@ -102,6 +102,7 @@ var searchSvcProviderSet = wire.NewSet(
 var eventsProviderSet = wire.NewSet(
 	ioc.InitSyncProducer,
 	ioc.InitConsumers,
+	searchCons.NewSyncDataEventConsumer,
 	article.NewSaramaSyncProducer,
 	article.NewReadEventConsumer,
 	searchCons.NewArticleConsumer,

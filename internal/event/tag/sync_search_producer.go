@@ -7,6 +7,8 @@ import (
 	"github.com/IBM/sarama"
 )
 
+const topicSyncData = "sync_search_event"
+
 //	type SyncDataEventConsumer struct {
 //		svc    service.SyncService
 //		client sarama.Client
@@ -45,10 +47,10 @@ func (p *SaramaSyncProducer) ProduceSyncEvent(ctx context.Context, tags BizTags)
 		DocID:     fmt.Sprintf("%d_%s_%d", tags.Uid, tags.Biz, tags.BizId),
 		Data:      string(data),
 	}
-	data, _ = json.Marshal(evt)
+	datas, _ := json.Marshal(evt)
 	_, _, err := p.client.SendMessage(&sarama.ProducerMessage{
-		Topic: "search_sync_data",
-		Value: sarama.ByteEncoder(data),
+		Topic: topicSyncData,
+		Value: sarama.ByteEncoder(datas),
 	})
 	return err
 }

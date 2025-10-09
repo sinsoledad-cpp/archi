@@ -75,7 +75,7 @@ func (r *RedisJWTHandler) SetJWTToken(ctx *gin.Context, uid int64, ssid string) 
 		UserAgent: ctx.GetHeader("User-Agent"),
 		RegisteredClaims: jwt.RegisteredClaims{
 			// 1 分钟过期
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 		},
 	}
 	token := jwt.NewWithClaims(r.signingMethod, uc)

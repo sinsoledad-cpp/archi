@@ -49,8 +49,7 @@ func (u *UserConsumer) Start() error {
 	return err
 }
 
-func (u *UserConsumer) Consume(sg *sarama.ConsumerMessage,
-	evt UserEvent) error {
+func (u *UserConsumer) Consume(sg *sarama.ConsumerMessage, evt UserEvent) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return u.syncSvc.InputUser(ctx, u.toDomain(evt))

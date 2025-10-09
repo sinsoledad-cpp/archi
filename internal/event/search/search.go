@@ -23,8 +23,16 @@ type SyncDataEventConsumer struct {
 	l      logger.Logger
 }
 
+func NewSyncDataEventConsumer(svc service.SyncService, client sarama.Client, l logger.Logger) *SyncDataEventConsumer {
+	return &SyncDataEventConsumer{
+		svc:    svc,
+		client: client,
+		l:      l,
+	}
+}
+
 func (a *SyncDataEventConsumer) Start() error {
-	cg, err := sarama.NewConsumerGroupFromClient("search_sync_data", a.client)
+	cg, err := sarama.NewConsumerGroupFromClient("sync_data", a.client)
 	if err != nil {
 		return err
 	}
@@ -39,8 +47,7 @@ func (a *SyncDataEventConsumer) Start() error {
 	return err
 }
 
-func (a *SyncDataEventConsumer) Consume(sg *sarama.ConsumerMessage,
-	evt SyncDataEvent) error {
+func (a *SyncDataEventConsumer) Consume(sg *sarama.ConsumerMessage, evt SyncDataEvent) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return a.svc.InputAny(ctx, evt.IndexName, evt.DocID, evt.Data)
