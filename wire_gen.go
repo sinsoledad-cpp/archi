@@ -61,7 +61,7 @@ func InitApp() *App {
 	followRelationDao := dao.NewGORMFollowRelationDAO(db)
 	followCache := cache.NewRedisFollowCache(cmdable)
 	followRepository := repository.NewCachedFollowRepository(followRelationDao, followCache, logger)
-	followRelationService := service.NewDefaultFollowRelationService(followRepository)
+	followRelationService := service.NewDefaultFollowRelationService(followRepository, logger)
 	followHandler := web.NewFollowHandler(followRelationService, logger)
 	tagDAO := dao.NewGORMTagDAO(db)
 	tagCache := cache.NewRedisTagCache(cmdable)

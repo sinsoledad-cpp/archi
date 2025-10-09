@@ -3,6 +3,7 @@ package service
 import (
 	"archi/internal/domain"
 	"archi/internal/repository"
+	"archi/pkg/logger"
 	"context"
 )
 
@@ -17,11 +18,13 @@ type FollowRelationService interface {
 
 type DefaultFollowRelationService struct {
 	repo repository.FollowRepository
+	l    logger.Logger
 }
 
-func NewDefaultFollowRelationService(repo repository.FollowRepository) FollowRelationService {
+func NewDefaultFollowRelationService(repo repository.FollowRepository, logger logger.Logger) FollowRelationService {
 	return &DefaultFollowRelationService{
 		repo: repo,
+		l:    logger,
 	}
 }
 func (f *DefaultFollowRelationService) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
@@ -38,10 +41,15 @@ func (f *DefaultFollowRelationService) FollowInfo(ctx context.Context, follower,
 }
 
 func (f *DefaultFollowRelationService) Follow(ctx context.Context, follower, followee int64) error {
-	return f.repo.AddFollowRelation(ctx, domain.FollowRelation{
+	err := f.repo.AddFollowRelation(ctx, domain.FollowRelation{
 		Followee: followee,
 		Follower: follower,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 func (f *DefaultFollowRelationService) CancelFollow(ctx context.Context, follower, followee int64) error {
 	return f.repo.InactiveFollowRelation(ctx, follower, followee)

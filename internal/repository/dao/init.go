@@ -16,5 +16,7 @@ func InitTables(db *gorm.DB) error {
 		&FollowRelation{},
 		&Tag{},
 		&TagBiz{},
+		&FeedPullEvent{},
+		&FeedPushEvent{},
 	)
 }
