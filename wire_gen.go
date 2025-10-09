@@ -82,7 +82,8 @@ func InitApp() *App {
 	anyRepository := search2.NewDefaultAnyRepository(anyDAO)
 	syncService := service.NewDefaultSyncService(anyRepository, searchUserRepository, searchArticleRepository)
 	userConsumer := search3.NewUserConsumer(client, logger, syncService)
-	v2 := ioc.InitConsumers(readEventConsumer, userConsumer)
+	articleConsumer := search3.NewArticleConsumer(client, logger, syncService)
+	v2 := ioc.InitConsumers(readEventConsumer, userConsumer, articleConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
 	localRankingCache := cache.NewLocalRankingCache()
 	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, localRankingCache)
@@ -120,7 +121,7 @@ var tagSvcProviderSet = wire.NewSet(cache.NewRedisTagCache, dao.NewGORMTagDAO, r
 
 var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, search.NewESArticleDAO, search2.NewDefaultUserRepository, search2.NewDefaultArticleRepository, service.NewDefaultSearchService, search.NewESAnyDAO, search2.NewDefaultAnyRepository, service.NewDefaultSyncService)
 
-var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer, tag.NewSaramaSyncProducer, user.NewSaramaSyncProducer, search3.NewUserConsumer)
+var eventsProviderSet = wire.NewSet(ioc.InitSyncProducer, ioc.InitConsumers, article.NewSaramaSyncProducer, article.NewReadEventConsumer, search3.NewArticleConsumer, tag.NewSaramaSyncProducer, user.NewSaramaSyncProducer, search3.NewUserConsumer)
 
 var handlerProviderSet = wire.NewSet(jwt.NewRedisJWTHandler, web.NewUserHandler, web.NewArticleHandler, web.NewCommentHandler, web.NewFollowHandler, web.NewTagHandler, web.NewSearchHandler)
 

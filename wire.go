@@ -104,6 +104,7 @@ var eventsProviderSet = wire.NewSet(
 	ioc.InitConsumers,
 	article.NewSaramaSyncProducer,
 	article.NewReadEventConsumer,
+	searchCons.NewArticleConsumer,
 	tag.NewSaramaSyncProducer,
 	user.NewSaramaSyncProducer,
 	searchCons.NewUserConsumer,

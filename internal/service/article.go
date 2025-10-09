@@ -50,7 +50,23 @@ func (a *DefaultArticleService) Save(ctx context.Context, art domain.Article) (i
 
 func (a *DefaultArticleService) Publish(ctx context.Context, art domain.Article) (int64, error) {
 	art.Status = domain.ArticleStatusPublished
-	return a.repo.Sync(ctx, art)
+
+	id, err := a.repo.Sync(ctx, art)
+
+	if err == nil {
+		go func() {
+			art.ID = id
+			bgCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
+			er := a.producer.ProduceSyncEvent(bgCtx, art)
+			if er != nil {
+				a.l.Error("发送用户同步事件失败",
+					logger.Int64("uid", art.ID),
+					logger.Error(er))
+			}
+		}()
+	}
+	return id, err
 }
 func (a *DefaultArticleService) Withdraw(ctx context.Context, uid int64, id int64) error {
 	return a.repo.SyncStatus(ctx, uid, id, domain.ArticleStatusPrivate)
