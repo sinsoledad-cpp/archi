@@ -19,16 +19,18 @@ import (
 type ArticleHandler struct {
 	ArtSvc   service.ArticleService //art
 	interSvc service.InteractiveService
+	rankSvc  service.RankingService
 	//rewardSvc service.RewardService
 	l   logger.Logger
 	biz string
 }
 
 // rewardSvc service.RewardService,
-func NewArticleHandler(artSvc service.ArticleService, interSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(artSvc service.ArticleService, interSvc service.InteractiveService, rankSvc service.RankingService, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
 		ArtSvc:   artSvc,
 		interSvc: interSvc,
+		rankSvc:  rankSvc,
 		//rewardSvc: rewardSvc,
 		l:   l,
 		biz: "article",
@@ -55,6 +57,8 @@ func (a *ArticleHandler) RegisterRoutes(e *gin.Engine) {
 	pub.POST("/like", ginx.WrapBodyAndClaims(a.Like))
 	pub.POST("/collect", ginx.WrapBodyAndClaims(a.Collect))
 	//pub.POST("/reward", ginx.WrapBodyAndClaims(a.Reward))
+
+	g.GET("/hot", ginx.Wrap(a.GetHot))
 }
 
 type ArticleEditReq struct {
@@ -387,37 +391,68 @@ type RewardReq struct {
 	Amt int64 `json:"amt"`
 }
 
-//func (a *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc jwt.UserClaims) (ginx.Result, error) {
-//	art, err := a.ArtSvc.GetPubById(ctx.Request.Context(), req.ID, uc.Uid)
-//	if err != nil {
-//		return ginx.Result{
-//			Code: errs.ArticleInternalServerError,
-//			Msg:  "系统错误",
-//		}, err
-//	}
+//	func (a *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc jwt.UserClaims) (ginx.Result, error) {
+//		art, err := a.ArtSvc.GetPubById(ctx.Request.Context(), req.ID, uc.Uid)
+//		if err != nil {
+//			return ginx.Result{
+//				Code: errs.ArticleInternalServerError,
+//				Msg:  "系统错误",
+//			}, err
+//		}
 //
-//	resp, err := a.rewardSvc.PreReward(ctx.Request.Context(), domain.Reward{
-//		Uid: uc.Uid,
-//		Target: domain.Target{
-//			Biz:     a.biz,
-//			BizID:   art.ID,
-//			BizName: art.Title,
-//			Uid:     art.Author.ID,
-//		},
-//		Amt: req.Amt,
-//	})
-//	if err != nil {
+//		resp, err := a.rewardSvc.PreReward(ctx.Request.Context(), domain.Reward{
+//			Uid: uc.Uid,
+//			Target: domain.Target{
+//				Biz:     a.biz,
+//				BizID:   art.ID,
+//				BizName: art.Title,
+//				Uid:     art.Author.ID,
+//			},
+//			Amt: req.Amt,
+//		})
+//		if err != nil {
+//			return ginx.Result{
+//				Code: errs.ArticleInternalServerError,
+//				Msg:  "系统错误",
+//			}, err
+//		}
 //		return ginx.Result{
-//			Code: errs.ArticleInternalServerError,
-//			Msg:  "系统错误",
-//		}, err
+//			Code: http.StatusOK,
+//			Msg:  "跳转打赏页面成功",
+//			Data: map[string]any{
+//				"codeURL": resp.URL,
+//				"rid":     resp.Rid,
+//			},
+//		}, nil
 //	}
-//	return ginx.Result{
-//		Code: http.StatusOK,
-//		Msg:  "跳转打赏页面成功",
-//		Data: map[string]any{
-//			"codeURL": resp.URL,
-//			"rid":     resp.Rid,
-//		},
-//	}, nil
-//}
+
+func (a *ArticleHandler) GetHot(ctx *gin.Context) (ginx.Result, error) {
+	// 直接调用 Ranking Service 获取热榜数据
+	arts, err := a.rankSvc.GetTopN(ctx)
+	if err != nil {
+		a.l.Error("获取热榜文章失败", logger.Error(err))
+		return ginx.Result{
+			Code: errs.ArticleInternalServerError,
+			Msg:  "系统错误",
+		}, err
+	}
+	// 2. 将领域对象（domain.Article）切片转换为视图对象（ArticleVo）切片
+	vos := make([]ArticleVo, len(arts))
+	for i, art := range arts {
+		vos[i] = ArticleVo{
+			ID:         art.ID,
+			Title:      art.Title,
+			Abstract:   art.Abstract(), // 调用方法生成摘要
+			AuthorId:   art.Author.ID,
+			AuthorName: art.Author.Name,
+			Status:     art.Status.ToUint8(),
+			Utime:      art.Utime.Format("2006-01-02 15:04:05"),
+		}
+	}
+	// 将领域对象转换为视图对象（VO）返回给前端
+	return ginx.Result{
+		Code: http.StatusOK,
+		Msg:  "热榜文章获取成功",
+		Data: arts,
+	}, nil
+}

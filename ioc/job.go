@@ -25,7 +25,7 @@ func InitJobs(l logger.Logger, rankingJob *job.RankingJob) *cron.Cron {
 		cron.WithSeconds(),
 		cron.WithChain(cron.SkipIfStillRunning(cron.DefaultLogger)), // 关键改动在这里
 	)
-	_, err := expr.AddJob("@every 10s", builder.Build(rankingJob))
+	_, err := expr.AddJob("@every 10m", builder.Build(rankingJob))
 	if err != nil {
 		panic(err)
 	}

@@ -34,8 +34,7 @@ func (i *ReadEventConsumer) Start() error {
 	return err
 }
 
-func (i *ReadEventConsumer) Consume(msg *sarama.ConsumerMessage,
-	event ReadEvent) error {
+func (i *ReadEventConsumer) Consume(msg *sarama.ConsumerMessage, event ReadEvent) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return i.repo.IncrReadCnt(ctx, "article", event.Aid)
