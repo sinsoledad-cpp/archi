@@ -4,6 +4,7 @@ import (
 	"archi/internal/repository/dao"
 	"archi/pkg/logger"
 	"fmt"
+
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

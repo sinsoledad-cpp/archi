@@ -1,11 +1,12 @@
 package ioc
 
 import (
+	"os"
+
 	"github.com/natefinch/lumberjack"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
 // lg 是全局的 zap.Logger 实例，用于记录日志
