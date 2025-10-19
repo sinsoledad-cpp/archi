@@ -1,17 +1,14 @@
 package setting
 
 import (
-	"archi/pkg/validate"
 	"encoding/json"
 	"fmt"
+
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 func InitViper() {
-	if err := validate.InitTrans("zh"); err != nil {
-		panic(err)
-	}
 
 	file := pflag.String("config", "config/dev.yaml", "配置文件路径")
 	// 这一步之后，file 里面才有值
@@ -37,6 +34,7 @@ func InitViper() {
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Println("--- All Settings as JSON ---")
 	fmt.Println(string(jsonData))
 }

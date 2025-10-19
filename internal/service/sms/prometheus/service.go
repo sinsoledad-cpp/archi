@@ -3,8 +3,9 @@ package prometheus
 import (
 	"archi/internal/service/sms"
 	"context"
-	"github.com/prometheus/client_golang/prometheus"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Service struct {
@@ -13,9 +14,11 @@ type Service struct {
 }
 
 func NewDecorator(svc sms.Service, opt prometheus.SummaryOpts) sms.Service {
+	vector := prometheus.NewSummaryVec(opt, []string{"tpl"})
+	prometheus.MustRegister(vector)
 	return &Service{
 		svc:    svc,
-		vector: prometheus.NewSummaryVec(opt, []string{"tpl_id"}),
+		vector: vector,
 	}
 }
 

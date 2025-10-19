@@ -1,0 +1,7 @@
+scrape_configs:
+  - job_name: "archi"                 # 抓取任务的名字，可以自定义
+    scrape_interval: 5s               # 每 5 秒抓取一次指标
+    scrape_timeout: 3s                # 最多等待 3 秒，否则超时
+    static_configs:
+      - targets: ["host.docker.internal:8081"]  # 目标地址
+#      - targets: ["localhost:8081"]  # 目标地址

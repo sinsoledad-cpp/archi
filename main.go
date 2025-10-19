@@ -9,6 +9,8 @@ import (
 
 func main() {
 	setting.InitViper()
+	setting.InitValidate()
+	setting.InitPrometheus()
 
 	app := InitApp()
 
@@ -25,8 +27,7 @@ func main() {
 	}()
 
 	server := app.engine
-	err := server.Run(":8080")
-	if err != nil {
+	if err := server.Run(":8080"); err != nil {
 		return
 	}
 }

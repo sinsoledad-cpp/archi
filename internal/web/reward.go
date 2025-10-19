@@ -5,8 +5,9 @@ import (
 	"archi/internal/web/errs"
 	jwtware "archi/internal/web/middleware/jwt"
 	"archi/pkg/ginx"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type RewardHandler struct {
