@@ -5,6 +5,7 @@ import (
 	"archi/internal/event/article"
 	"archi/internal/event/feed"
 	"archi/internal/event/search"
+
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 )
@@ -40,8 +41,20 @@ func InitSyncProducer(c sarama.Client) sarama.SyncProducer {
 	}
 	return p
 }
-func InitConsumers(c1 *article.ReadEventConsumer, c2 *search.UserConsumer,
-	c3 *search.ArticleConsumer, c0 *search.SyncDataEventConsumer,
-	c4 *feed.FollowEventConsumer) []event.Consumer {
-	return []event.Consumer{c1, c2, c3, c0, c4}
+
+// InitConsumers “新建消费者组”，准确描述了它“创建了一个组”
+func InitConsumers(
+	artReadC *article.ReadEventConsumer,
+	userSearchC *search.UserConsumer,
+	artSearchC *search.ArticleConsumer,
+	syncC *search.SyncDataEventConsumer,
+	followC *feed.FollowEventConsumer,
+) []event.Consumer {
+	return []event.Consumer{
+		artReadC,
+		userSearchC,
+		artSearchC,
+		syncC,
+		followC,
+	}
 }

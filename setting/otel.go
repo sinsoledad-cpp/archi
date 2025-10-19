@@ -1,4 +1,4 @@
-package ioc
+package setting
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 )
 
 // InitOTEL 返回一个关闭函数，并且让调用者关闭的时候来决定这个 ctx
@@ -18,6 +18,7 @@ func InitOTEL() func(ctx context.Context) {
 	if err != nil {
 		panic(err)
 	}
+
 	prop := newPropagator()
 	// 在客户端和服务端之间传递 tracing 的相关信息
 	otel.SetTextMapPropagator(prop)

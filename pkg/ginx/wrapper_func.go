@@ -4,10 +4,13 @@ import (
 	"archi/pkg/logger"
 	"archi/pkg/validate"
 	"errors"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/prometheus/client_golang/prometheus"
+
 	"net/http"
 )
 
@@ -15,6 +18,13 @@ var log = logger.NewNopLogger()
 
 func SetLogger(l logger.Logger) {
 	log = l
+}
+
+var vector *prometheus.CounterVec
+
+func InitMetricCounter(opt prometheus.CounterOpts) {
+	vector = prometheus.NewCounterVec(opt, []string{"code"})
+	prometheus.MustRegister(vector)
 }
 
 // WrapBodyAndClaims bizFn 就是你的业务逻辑
@@ -61,6 +71,7 @@ func WrapBodyAndClaims[Req any, Claims jwt.Claims](bizFn func(ctx *gin.Context, 
 		}
 		log.Debug("返回响应", logger.Field{Key: "res:=", Val: res})
 
+		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		ctx.JSON(http.StatusOK, res)
 	}
 }
@@ -73,6 +84,7 @@ func Wrap(bizFn func(ctx *gin.Context) (Result, error)) gin.HandlerFunc {
 		}
 		log.Debug("返回响应", logger.Field{Key: "res:=", Val: res})
 
+		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		ctx.JSON(http.StatusOK, res)
 	}
 }
@@ -108,6 +120,7 @@ func WrapBody[Req any](bizFn func(ctx *gin.Context, req Req) (Result, error)) gi
 		}
 		log.Debug("返回响应", logger.Field{Key: "res:=", Val: res})
 
+		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		ctx.JSON(http.StatusOK, res)
 	}
 }
@@ -133,6 +146,7 @@ func WrapClaims[Claims any](bizFn func(ctx *gin.Context, uc Claims) (Result, err
 		}
 		log.Debug("返回响应", logger.Field{Key: "res:=", Val: res})
 
+		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		ctx.JSON(http.StatusOK, res)
 	}
 }

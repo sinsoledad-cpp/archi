@@ -12,6 +12,8 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger,
@@ -19,6 +21,12 @@ func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger,
 	fHdl *web.FollowHandler, tagHdl *web.TagHandler, searchHdl *web.SearchHandler,
 	feedHdl *web.FeedHandler) *gin.Engine {
 	ginx.SetLogger(l)
+	ginx.InitMetricCounter(prometheus.CounterOpts{
+		Namespace: "sinsoledad",
+		Subsystem: "archi",
+		Name:      "biz_code",
+		Help:      "统计业务错误码",
+	})
 	gin.ForceConsoleColor()
 	engine := gin.Default()
 	engine.Static("/uploads", "./uploads")
@@ -67,5 +75,6 @@ func InitGinMiddlewares(jwtHdl jwt.Handler, l logger.Logger) []gin.HandlerFunc {
 		accessLogMiddleware,
 		pb.BuildResponseTime(),
 		pb.BuildActiveRequest(),
+		otelgin.Middleware("archi"),
 	}
 }

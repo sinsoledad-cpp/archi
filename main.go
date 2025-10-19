@@ -2,6 +2,8 @@ package main
 
 import (
 	"archi/setting"
+	"context"
+	"time"
 )
 
 //TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
@@ -11,6 +13,12 @@ func main() {
 	setting.InitViper()
 	setting.InitValidate()
 	setting.InitPrometheus()
+	tpCancel := setting.InitOTEL()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		tpCancel(ctx)
+	}()
 
 	app := InitApp()
 
