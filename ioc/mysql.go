@@ -11,6 +11,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	glogger "gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/tracing"
 	gormprometheus "gorm.io/plugin/prometheus"
 )
 
@@ -71,6 +72,11 @@ func InitMySQL(l logger.Logger) *gorm.DB {
 		},
 	})
 	if err = db.Use(cb); err != nil {
+		panic(err)
+	}
+
+	// OTEL 不要收集指标 (Metrics)
+	if err = db.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
 		panic(err)
 	}
 
