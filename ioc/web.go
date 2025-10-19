@@ -8,9 +8,10 @@ import (
 	ginxmw "archi/pkg/ginx/middleware"
 	"archi/pkg/logger"
 	"context"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"time"
 )
 
 func InitWebEngine(middlewares []gin.HandlerFunc, l logger.Logger,
@@ -58,9 +59,13 @@ func InitGinMiddlewares(jwtHdl jwt.Handler, l logger.Logger) []gin.HandlerFunc {
 	}
 	accessLogMiddleware := ginxmw.NewAccessLogBuilder(logFn).AllowReqBody().AllowRespBody().Build()
 
+	pb := ginxmw.NewPrometheusBuilder("sinsoledad", "archi", "gin_http", "统计 GIN 的HTTP接口数据")
+
 	return []gin.HandlerFunc{
 		webmw.NewJWTAuth(jwtHdl).Middleware(),
 		corsMiddleware,
 		accessLogMiddleware,
+		pb.BuildResponseTime(),
+		pb.BuildActiveRequest(),
 	}
 }

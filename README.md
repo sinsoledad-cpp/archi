@@ -26,3 +26,9 @@
 * 缩写词要么全大写，要么全小写 eg：JWT、URL、HTTP、ID
 * 结构体成员：[主体名词][类型缩写] eg：userSvc
 * 函数和方法名：[动作][上下文] or [动作][上下文]
+
+# 调试
+
+Prometheus数据源(http://localhost:8081/metrics)
+
+Prometheus(http://localhost:9090)

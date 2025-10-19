@@ -133,7 +133,7 @@ services:
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      - ./script/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./scripts/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
     networks:
@@ -143,6 +143,15 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  # Zipkin 服务
+  zipkin:
+    image: openzipkin/zipkin-slim:2.24
+    container_name: zipkin_server
+    restart: unless-stopped
+    ports:
+      - '9411:9411'
+    networks:
+      - net01
   # Grafana 服务
   grafana:
     image: grafana/grafana-enterprise:10.2.0

@@ -2,14 +2,16 @@ package ioc
 
 import (
 	"archi/internal/repository/dao"
+	"archi/pkg/gormx/metrics"
 	"archi/pkg/logger"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-
 	glogger "gorm.io/gorm/logger"
+	gormprometheus "gorm.io/plugin/prometheus"
 )
 
 func InitMySQL(l logger.Logger) *gorm.DB {
@@ -22,6 +24,7 @@ func InitMySQL(l logger.Logger) *gorm.DB {
 	if err := viper.UnmarshalKey("mysql", &cfg); err != nil {
 		panic(err)
 	}
+	// 连接数据库，开启慢日志
 	db, err := gorm.Open(mysql.Open(cfg.DSN),
 		&gorm.Config{
 			Logger: glogger.New(gormLoggerFunc(l.Debug), glogger.Config{
@@ -34,6 +37,43 @@ func InitMySQL(l logger.Logger) *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
+
+	// 对数据库状态监控
+	err = db.Use(gormprometheus.New(gormprometheus.Config{
+		DBName:          "archi",
+		RefreshInterval: 60,
+		MetricsCollector: []gormprometheus.MetricsCollector{
+			&gormprometheus.MySQL{
+				// 指定需要监控的变量,如果没定义,则默认所有变量
+				VariableNames: []string{"Threads_running"},
+			},
+		},
+	}))
+	if err != nil {
+		panic(err)
+	}
+
+	// 添加 Prometheus 监控,对数据库操作
+	cb := metrics.NewPrometheusCallbacks(prometheus.SummaryOpts{
+		Namespace: "sinsoledad",
+		Subsystem: "archi",
+		Name:      "gorm_db",
+		Help:      "统计 GORM 的数据库操作(毫秒)",
+		ConstLabels: map[string]string{
+			"instance_id": "my_mysql_instance",
+		},
+		Objectives: map[float64]float64{
+			0.5:   0.01,
+			0.75:  0.01,
+			0.9:   0.01,
+			0.99:  0.001,
+			0.999: 0.0001,
+		},
+	})
+	if err = db.Use(cb); err != nil {
+		panic(err)
+	}
+
 	if err = dao.InitTables(db); err != nil {
 		panic(err)
 	}
