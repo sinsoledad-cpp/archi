@@ -3,18 +3,21 @@ package ioc
 import (
 	"archi/internal/service/sms"
 	"archi/internal/service/sms/memory"
+	"archi/internal/service/sms/opentelemetry"
 	"archi/internal/service/sms/tencent"
+	"os"
+
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	tencentSMS "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111"
-	"os"
 )
 
 func InitSMSService() sms.Service {
 	//return ratelimit.NewRateLimitSMSService(localsms.NewService(), limiter.NewRedisSlidingWindowLimiter())
 	// 如果有需要，就可以用这个
 	//return initTencentSMSService()
-	return memory.NewService()
+	//return memory.NewService()
+	return opentelemetry.NewService(memory.NewService())
 }
 
 func initTencentSMSService() sms.Service {

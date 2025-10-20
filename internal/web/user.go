@@ -8,14 +8,15 @@ import (
 	"archi/pkg/ginx"
 	"archi/pkg/logger"
 	"errors"
-	regexp "github.com/dlclark/regexp2"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	regexp "github.com/dlclark/regexp2"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var _ Handler = (*UserHandler)(nil)
@@ -367,7 +368,7 @@ func (u *UserHandler) SendSMSLoginCode(ctx *gin.Context, req SendSMSCodeReq) (gi
 			Msg:  "请输入手机号码",
 		}, nil
 	}
-	err := u.codeSvc.Send(ctx, bizLogin, req.Phone)
+	err := u.codeSvc.Send(ctx.Request.Context(), bizLogin, req.Phone)
 	switch {
 	case err == nil:
 		return ginx.Result{
