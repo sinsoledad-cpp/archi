@@ -8,12 +8,13 @@ import (
 	"archi/pkg/ginx"
 	"archi/pkg/logger"
 	"fmt"
-	"github.com/ecodeclub/ekit/slice"
-	"github.com/gin-gonic/gin"
-	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/ecodeclub/ekit/slice"
+	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 )
 
 type ArticleHandler struct {
@@ -276,8 +277,6 @@ func (a *ArticleHandler) PubDetail(ctx *gin.Context, uc jwt.UserClaims) (ginx.Re
 	eg.Go(func() error {
 		var er error
 		intr, er = a.interSvc.Get(ctx, a.biz, id, uc.Uid)
-
-		//if er
 
 		return er
 	})
