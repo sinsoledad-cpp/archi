@@ -3,6 +3,7 @@ package web
 import (
 	"archi/internal/domain"
 	"archi/internal/service"
+	"archi/internal/service/ai"
 	"archi/internal/web/errs"
 	"archi/internal/web/middleware/jwt"
 	"archi/pkg/ginx"
@@ -21,17 +22,19 @@ type ArticleHandler struct {
 	ArtSvc   service.ArticleService //art
 	interSvc service.InteractiveService
 	rankSvc  service.RankingService
+	aiSvc    ai.AiService
 	//rewardSvc service.RewardService
 	l   logger.Logger
 	biz string
 }
 
 // rewardSvc service.RewardService,
-func NewArticleHandler(artSvc service.ArticleService, interSvc service.InteractiveService, rankSvc service.RankingService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(artSvc service.ArticleService, interSvc service.InteractiveService, rankSvc service.RankingService, aiSvc ai.AiService, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
 		ArtSvc:   artSvc,
 		interSvc: interSvc,
 		rankSvc:  rankSvc,
+		aiSvc:    aiSvc,
 		//rewardSvc: rewardSvc,
 		l:   l,
 		biz: "article",
@@ -58,6 +61,8 @@ func (a *ArticleHandler) RegisterRoutes(e *gin.Engine) {
 	pub.POST("/like", ginx.WrapBodyAndClaims(a.Like))
 	pub.POST("/collect", ginx.WrapBodyAndClaims(a.Collect))
 	//pub.POST("/reward", ginx.WrapBodyAndClaims(a.Reward))
+
+	pub.GET("/:id/ai-summary", ginx.Wrap(a.GetAiSummary))
 
 	g.GET("/hot", ginx.Wrap(a.GetHot))
 }
@@ -329,6 +334,41 @@ func (a *ArticleHandler) PubDetail(ctx *gin.Context, uc jwt.UserClaims) (ginx.Re
 		Code: http.StatusOK,
 		Msg:  "查询成功",
 		Data: data,
+	}, nil
+}
+
+func (a *ArticleHandler) GetAiSummary(ctx *gin.Context) (ginx.Result, error) {
+	idstr := ctx.Param("id")
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err != nil {
+		return ginx.Result{
+			Code: errs.ArticleInvalidInput,
+			Msg:  "id 参数错误",
+		}, err
+	}
+
+	// 1. 获取文章内容 (不传 UID，因为总结是公开的)
+	art, err := a.ArtSvc.GetPubById(ctx, id, 0)
+	if err != nil {
+		a.l.Error("AI 总结查询文章失败", logger.Int64("id", id), logger.Error(err))
+		return ginx.Result{
+			Code: errs.ArticleInternalServerError,
+			Msg:  "系统错误",
+		}, err
+	}
+
+	// 2. 调用 AI 服务获取总结
+	summary, err := a.aiSvc.GetArticleSummary(ctx, art)
+	if err != nil {
+		a.l.Error("获取 AI 总结失败", logger.Int64("id", id), logger.Error(err))
+		return ginx.Result{
+			Code: errs.AiServiceError,
+			Msg:  "AI 课代表正在开小差，请稍后再试",
+		}, err
+	}
+
+	return ginx.Result{
+		Data: summary,
 	}, nil
 }
 

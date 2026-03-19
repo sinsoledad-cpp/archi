@@ -34,6 +34,12 @@ type Article struct {
 	Utime   time.Time
 }
 
+// ArticleSummary 作为文章的价值对象，存放 AI 总结内容
+type ArticleSummary struct {
+	Content         string   `json:"content"`
+	GoldenSentences []string `json:"golden_sentences"`
+}
+
 func (a Article) Abstract() string {
 	str := []rune(a.Content)
 	// 只取部分作为摘要

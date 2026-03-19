@@ -5,4 +5,6 @@ const (
 	ArticleInvalidInput = 403001
 	// ArticleInternalServerError 这是一个非常含糊的错误码。代表系统内部错误
 	ArticleInternalServerError = 503001
+	// AiServiceError AI 服务故障
+	AiServiceError = 503002
 )
