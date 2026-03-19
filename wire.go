@@ -97,7 +97,7 @@ var aiSvcProviderSet = wire.NewSet(
 	repository.NewCachedAiRepository,
 	ioc.InitVolcanoModel,
 	ai.NewAiFactory,
-	ai.NewAiProvider,
+	ioc.InitAiProvider,
 	ai.NewAiService,
 )
 

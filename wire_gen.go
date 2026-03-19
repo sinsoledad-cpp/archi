@@ -60,7 +60,9 @@ func InitApp() *App {
 	localRankingCache := cache.NewLocalRankingCache()
 	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, localRankingCache)
 	rankingService := service.NewBatchRankingService(interactiveService, articleService, rankingRepository)
-	aiProvider := ai.NewAiProvider()
+	toolCallingChatModel := ioc.InitVolcanoModel()
+	aiFactory := ai.NewAiFactory(toolCallingChatModel)
+	aiProvider := ioc.InitAiProvider(aiFactory)
 	aiCache := cache.NewRedisAiCache(cmdable)
 	aiRepository := repository.NewCachedAiRepository(aiCache)
 	aiService := ai.NewAiService(aiProvider, aiRepository)
@@ -109,14 +111,10 @@ func InitApp() *App {
 	rlockClient := ioc.InitRlockClient(cmdable)
 	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, logger)
 	cron := ioc.InitJobs(logger, rankingJob)
-	toolCallingChatModel := ioc.InitVolcanoModel()
-	aiFactory := ai.NewAiFactory(toolCallingChatModel)
 	app := &App{
-		engine:     engine,
-		consumers:  v3,
-		cron:       cron,
-		aiFactory:  aiFactory,
-		aiProvider: aiProvider,
+		engine:    engine,
+		consumers: v3,
+		cron:      cron,
 	}
 	return app
 }
@@ -141,7 +139,7 @@ var followSvcProviderSet = wire.NewSet(cache.NewRedisFollowCache, dao.NewGORMFol
 
 var tagSvcProviderSet = wire.NewSet(cache.NewRedisTagCache, dao.NewGORMTagDAO, repository.NewCachedTagRepository, service.NewDefaultTagService)
 
-var aiSvcProviderSet = wire.NewSet(cache.NewRedisAiCache, repository.NewCachedAiRepository, ioc.InitVolcanoModel, ai.NewAiFactory, ai.NewAiProvider, ai.NewAiService)
+var aiSvcProviderSet = wire.NewSet(cache.NewRedisAiCache, repository.NewCachedAiRepository, ioc.InitVolcanoModel, ai.NewAiFactory, ioc.InitAiProvider, ai.NewAiService)
 
 var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, search.NewESArticleDAO, search2.NewDefaultUserRepository, search2.NewDefaultArticleRepository, service.NewDefaultSearchService, search.NewESAnyDAO, search2.NewDefaultAnyRepository, service.NewDefaultSyncService)
 

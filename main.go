@@ -1,11 +1,8 @@
 package main
 
 import (
-	"archi/internal/domain"
-	"archi/internal/service/ai"
 	"archi/setting"
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -35,9 +32,6 @@ func main() {
 
 	app := InitApp()
 
-	// 注册 AI 场景
-	registerAiScenes(app.aiFactory, app.aiProvider)
-
 	for _, c := range app.consumers {
 		err := c.Start()
 		if err != nil {
@@ -54,13 +48,4 @@ func main() {
 	if err := server.Run(":8080"); err != nil {
 		return
 	}
-}
-
-func registerAiScenes(factory *ai.AiFactory, provider *ai.AiProvider) {
-	// 场景：文章课代表总结
-	summaryRunnable, err := factory.Create(domain.SceneArticleSummary)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create ai scene %s: %v", domain.SceneArticleSummary, err))
-	}
-	provider.Register(domain.SceneArticleSummary, summaryRunnable)
 }

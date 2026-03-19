@@ -1,12 +1,29 @@
 package ioc
 
 import (
+	"archi/internal/domain"
+	"archi/internal/service/ai"
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/cloudwego/eino-ext/components/model/ark"
 	"github.com/cloudwego/eino/components/model"
 )
+
+func InitAiProvider(factory *ai.AiFactory) *ai.AiProvider {
+	provider := ai.NewAiProvider()
+
+	// 在这里统一注册所有 AI 场景
+	// 场景：文章课代表总结
+	summaryRunnable, err := factory.Create(domain.SceneArticleSummary)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create ai scene %s: %v", domain.SceneArticleSummary, err))
+	}
+	provider.Register(domain.SceneArticleSummary, summaryRunnable)
+
+	return provider
+}
 
 func InitVolcanoModel() model.ToolCallingChatModel {
 	// 直接使用 os.Getenv 读取环境变量
