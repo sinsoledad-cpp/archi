@@ -15,10 +15,12 @@ import (
 	searchDAO "archi/internal/repository/dao/search"
 	searchRepo "archi/internal/repository/search"
 	"archi/internal/service"
+	"archi/internal/service/ai"
 	"archi/internal/service/feed"
 	"archi/internal/web"
 	"archi/internal/web/middleware/jwt"
 	"archi/ioc"
+
 	"github.com/google/wire"
 )
 
@@ -88,6 +90,15 @@ var tagSvcProviderSet = wire.NewSet(
 	dao.NewGORMTagDAO,
 	repository.NewCachedTagRepository,
 	service.NewDefaultTagService,
+)
+
+var aiSvcProviderSet = wire.NewSet(
+	cache.NewRedisAiCache,
+	repository.NewCachedAiRepository,
+	ioc.InitVolcanoModel,
+	ai.NewAiFactory,
+	ai.NewAiProvider,
+	ai.NewAiService,
 )
 
 var searchSvcProviderSet = wire.NewSet(
@@ -161,6 +172,7 @@ func InitApp() *App {
 		tagSvcProviderSet,
 		searchSvcProviderSet,
 		feedSvcProviderSet,
+		aiSvcProviderSet,
 
 		handlerProviderSet,
 		jobProviderSet,

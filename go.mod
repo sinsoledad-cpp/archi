@@ -6,6 +6,7 @@ require (
 	github.com/IBM/sarama v1.46.1
 	github.com/aliyun/alibaba-cloud-sdk-go v1.63.107
 	github.com/cloudwego/eino v0.8.4
+	github.com/cloudwego/eino-ext/components/model/ark v0.1.65
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/ecodeclub/ekit v0.0.10
 	github.com/gin-contrib/cors v1.7.6
@@ -93,6 +94,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
@@ -125,6 +127,8 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
+	github.com/volcengine/volc-sdk-golang v1.0.23 // indirect
+	github.com/volcengine/volcengine-go-sdk v1.2.9 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
@@ -141,6 +145,7 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/clickhouse v0.7.0 // indirect
 	gorm.io/driver/postgres v1.5.11 // indirect

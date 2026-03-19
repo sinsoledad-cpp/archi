@@ -19,6 +19,7 @@ import (
 	"archi/internal/repository/dao/search"
 	search2 "archi/internal/repository/search"
 	"archi/internal/service"
+	"archi/internal/service/ai"
 	"archi/internal/service/feed"
 	"archi/internal/web"
 	"archi/internal/web/middleware/jwt"
@@ -59,7 +60,11 @@ func InitApp() *App {
 	localRankingCache := cache.NewLocalRankingCache()
 	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, localRankingCache)
 	rankingService := service.NewBatchRankingService(interactiveService, articleService, rankingRepository)
-	articleHandler := web.NewArticleHandler(articleService, interactiveService, rankingService, logger)
+	aiProvider := ai.NewAiProvider()
+	aiCache := cache.NewRedisAiCache(cmdable)
+	aiRepository := repository.NewCachedAiRepository(aiCache)
+	aiService := ai.NewAiService(aiProvider, aiRepository)
+	articleHandler := web.NewArticleHandler(articleService, interactiveService, rankingService, aiService, logger)
 	commentDAO := dao.NewGORMCommentDAO(db)
 	commentRepository := repository.NewCachedCommentRepository(commentDAO, logger)
 	commentService := service.NewDefaultCommentService(commentRepository)
@@ -104,10 +109,14 @@ func InitApp() *App {
 	rlockClient := ioc.InitRlockClient(cmdable)
 	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, logger)
 	cron := ioc.InitJobs(logger, rankingJob)
+	toolCallingChatModel := ioc.InitVolcanoModel()
+	aiFactory := ai.NewAiFactory(toolCallingChatModel)
 	app := &App{
-		engine:    engine,
-		consumers: v3,
-		cron:      cron,
+		engine:     engine,
+		consumers:  v3,
+		cron:       cron,
+		aiFactory:  aiFactory,
+		aiProvider: aiProvider,
 	}
 	return app
 }
@@ -131,6 +140,8 @@ var commentSvcProviderSet = wire.NewSet(dao.NewGORMCommentDAO, repository.NewCac
 var followSvcProviderSet = wire.NewSet(cache.NewRedisFollowCache, dao.NewGORMFollowRelationDAO, repository.NewCachedFollowRepository, service.NewDefaultFollowRelationService)
 
 var tagSvcProviderSet = wire.NewSet(cache.NewRedisTagCache, dao.NewGORMTagDAO, repository.NewCachedTagRepository, service.NewDefaultTagService)
+
+var aiSvcProviderSet = wire.NewSet(cache.NewRedisAiCache, repository.NewCachedAiRepository, ioc.InitVolcanoModel, ai.NewAiFactory, ai.NewAiProvider, ai.NewAiService)
 
 var searchSvcProviderSet = wire.NewSet(search.NewESUserDAO, search.NewESTagDAO, search.NewESArticleDAO, search2.NewDefaultUserRepository, search2.NewDefaultArticleRepository, service.NewDefaultSearchService, search.NewESAnyDAO, search2.NewDefaultAnyRepository, service.NewDefaultSyncService)
 
