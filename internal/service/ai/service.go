@@ -5,11 +5,15 @@ import (
 	"archi/internal/repository"
 	"context"
 	"fmt"
+
+	"github.com/cloudwego/eino/schema"
 )
 
 // AiService 负责 AI 业务逻辑的调度与缓存编排
 type AiService interface {
 	GetArticleSummary(ctx context.Context, art domain.Article) (domain.ArticleSummary, error)
+	// AnswerQuestionStream 支持流式返回，提供“打字机”效果
+	AnswerQuestionStream(ctx context.Context, artId int64, content string, question string) (*schema.StreamReader[any], error)
 }
 
 type aiService struct {
@@ -27,10 +31,10 @@ func NewAiService(p *AiProvider, r repository.AiRepository) AiService {
 // GetArticleSummary 获取文章课代表总结
 func (s *aiService) GetArticleSummary(ctx context.Context, art domain.Article) (domain.ArticleSummary, error) {
 	// 1. 优先查缓存 (Cache-Aside)
-	summary, err := s.repo.GetArticleSummary(ctx, art.ID)
-	if err == nil {
-		return summary, nil
-	}
+	//summary, err := s.repo.GetArticleSummary(ctx, art.ID)
+	//if err == nil {
+	//	return summary, nil
+	//}
 
 	// 2. 缓存未命中，调用 AI Provider 获取预编译好的 Graph/Chain
 	runnable := s.provider.Get(domain.SceneArticleSummary)
@@ -57,4 +61,23 @@ func (s *aiService) GetArticleSummary(ctx context.Context, art domain.Article) (
 	}()
 
 	return summaryRes, nil
+}
+
+// AnswerQuestionStream 实现针对单篇文章的“笔记问答”
+func (s *aiService) AnswerQuestionStream(ctx context.Context, artId int64, content string, question string) (*schema.StreamReader[any], error) {
+	// 1. 获取执行器
+	runnable := s.provider.Get(domain.SceneArticleQA)
+	if runnable == nil {
+		return nil, fmt.Errorf("ai scene %s is not registered", domain.SceneArticleQA)
+	}
+
+	// 2. 构造输入 DTO
+	input := ArticleQAInput{
+		ArticleID: artId,
+		Content:   content,
+		Question:  question,
+	}
+
+	// 3. 调用流式执行接口
+	return runnable.Stream(ctx, input)
 }

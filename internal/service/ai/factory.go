@@ -26,6 +26,8 @@ func (f *AiFactory) Create(scene domain.Scene) (compose.Runnable[any, any], erro
 	switch scene {
 	case domain.SceneArticleSummary:
 		return f.buildSummaryChain()
+	case domain.SceneArticleQA:
+		return f.buildArticleQAChain()
 	case domain.SceneAuthorHelper:
 		// 未来扩展
 		return nil, fmt.Errorf("scene %s is not implemented yet", scene)
@@ -82,5 +84,53 @@ func (f *AiFactory) buildSummaryChain() (compose.Runnable[any, any], error) {
 		}))
 
 	// 3. 编译并返回
+	return chain.Compile(context.Background())
+}
+
+// buildArticleQAChain 构建“沉浸式笔记问答”编排链 (Long Context 直接注入方案)
+func (f *AiFactory) buildArticleQAChain() (compose.Runnable[any, any], error) {
+	// 1. 定义编排链
+	chain := compose.NewChain[any, any]()
+
+	chain.
+		// 第一步：格式化输入，构建带 Long Context 的 Prompt
+		AppendLambda(compose.InvokableLambda(func(ctx context.Context, input any) ([]*schema.Message, error) {
+			var qaInput ArticleQAInput
+			switch v := input.(type) {
+			case ArticleQAInput:
+				qaInput = v
+			case *ArticleQAInput:
+				if v == nil {
+					return nil, fmt.Errorf("input QA input pointer is nil")
+				}
+				qaInput = *v
+			default:
+				return nil, fmt.Errorf("invalid input type for QA chain: %T", input)
+			}
+
+			// 构造 System Prompt，直接注入文章全文作为上下文
+			systemPrompt := fmt.Sprintf(`你是一位博学且细心的文章助手。以下是用户正在阅读的文章全文：
+---
+%s
+---
+请严格基于以上内容回答用户的提问。
+规则：
+1. 如果文章中没有提到相关信息，请回答：“抱歉，在本文中没有找到相关信息。”
+2. 请使用简洁且有亲和力的语气。
+3. 必要时使用 Markdown 格式（如加粗或列表）使回答更易读。`, qaInput.Content)
+
+			return []*schema.Message{
+				schema.SystemMessage(systemPrompt),
+				schema.UserMessage(qaInput.Question),
+			}, nil
+		})).
+		// 第二步：调用模型 (支持流式输出)
+		AppendChatModel(f.chatModel).
+		// 第三步：后处理，将 *schema.Message 转换为文本内容 (如果是流式，这一步会被 Eino 自动处理或透传)
+		AppendLambda(compose.InvokableLambda(func(ctx context.Context, msg *schema.Message) (any, error) {
+			return msg.Content, nil
+		}))
+
+	// 2. 编译并返回
 	return chain.Compile(context.Background())
 }

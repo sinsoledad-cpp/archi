@@ -5,5 +5,6 @@ type Scene string
 
 const (
 	SceneArticleSummary Scene = "article_summary" // 读者侧：文章总结
+	SceneArticleQA      Scene = "article_qa"      // 读者侧：文章问答 QA
 	SceneAuthorHelper   Scene = "author_helper"   // 创作者侧：创作助手
 )

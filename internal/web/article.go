@@ -63,8 +63,13 @@ func (a *ArticleHandler) RegisterRoutes(e *gin.Engine) {
 	//pub.POST("/reward", ginx.WrapBodyAndClaims(a.Reward))
 
 	pub.GET("/:id/ai-summary", ginx.Wrap(a.GetAiSummary))
+	pub.POST("/:id/ai-qa", a.AnswerQA)
 
 	g.GET("/hot", ginx.Wrap(a.GetHot))
+}
+
+type ArticleQAReq struct {
+	Question string `json:"question"`
 }
 
 type ArticleEditReq struct {
@@ -368,8 +373,86 @@ func (a *ArticleHandler) GetAiSummary(ctx *gin.Context) (ginx.Result, error) {
 	}
 
 	return ginx.Result{
+		Code: http.StatusOK,
+		Msg:  "AI 总结生成成功",
 		Data: summary,
 	}, nil
+}
+
+// AnswerQA 针对单篇文章的“沉浸式笔记问答” (SSE 实现)
+func (a *ArticleHandler) AnswerQA(ctx *gin.Context) {
+	// 1. 获取文章 ID
+	idstr := ctx.Param("id")
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusOK, ginx.Result{
+			Code: errs.ArticleInvalidInput,
+			Msg:  "id 参数错误",
+		})
+		return
+	}
+
+	// 2. 解析请求体
+	var req ArticleQAReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusOK, ginx.Result{
+			Code: errs.ArticleInvalidInput,
+			Msg:  "请求格式错误",
+		})
+		return
+	}
+
+	// 3. 获取文章内容 (用于注入 Context)
+	// 这里可以加上权限校验，目前先假设公开文章
+	art, err := a.ArtSvc.GetPubById(ctx, id, 0)
+	if err != nil {
+		a.l.Error("AI 问答查询文章失败", logger.Int64("id", id), logger.Error(err))
+		ctx.JSON(http.StatusOK, ginx.Result{
+			Code: errs.ArticleInternalServerError,
+			Msg:  "系统错误",
+		})
+		return
+	}
+
+	// 4. 调用 AI Service 获取流式响应
+	reader, err := a.aiSvc.AnswerQuestionStream(ctx, id, art.Content, req.Question)
+	if err != nil {
+		a.l.Error("启动 AI 问答失败", logger.Int64("id", id), logger.Error(err))
+		ctx.JSON(http.StatusOK, ginx.Result{
+			Code: errs.AiServiceError,
+			Msg:  "AI 助手暂不可用",
+		})
+		return
+	}
+	defer reader.Close()
+
+	// 5. 设置 SSE 响应头
+	ctx.Header("Content-Type", "text/event-stream")
+	ctx.Header("Cache-Control", "no-cache")
+	ctx.Header("Connection", "keep-alive")
+	ctx.Header("Transfer-Encoding", "chunked")
+
+	// 6. 循环读取流并发送
+	for {
+		chunk, err := reader.Recv()
+		if err != nil {
+			// 流结束
+			break
+		}
+
+		content, ok := chunk.(string)
+		if !ok {
+			continue
+		}
+
+		// 发送数据块给前端
+		ctx.SSEvent("message", content)
+		ctx.Writer.Flush()
+	}
+
+	// 结束标识
+	ctx.SSEvent("end", "done")
+	ctx.Writer.Flush()
 }
 
 type ArticleLikeReq struct {

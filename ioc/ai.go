@@ -22,6 +22,13 @@ func InitAiProvider(factory *ai.AiFactory) *ai.AiProvider {
 	}
 	provider.Register(domain.SceneArticleSummary, summaryRunnable)
 
+	// 场景：沉浸式笔记问答
+	qaRunnable, err := factory.Create(domain.SceneArticleQA)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create ai scene %s: %v", domain.SceneArticleQA, err))
+	}
+	provider.Register(domain.SceneArticleQA, qaRunnable)
+
 	return provider
 }
 

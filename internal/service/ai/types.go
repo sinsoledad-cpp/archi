@@ -1,17 +1,8 @@
 package ai
 
-import (
-	"archi/internal/domain"
-)
-
-// aiTask 内部任务包装
-type aiTask struct {
-	scene domain.Scene
-	input any
-}
-
-// aiMetadata AI 执行元数据
-type aiMetadata struct {
-	tokenUsage int
-	modelName  string
+// ArticleQAInput 针对文章问答场景的输入 DTO
+type ArticleQAInput struct {
+	ArticleID int64  `json:"article_id"`
+	Content   string `json:"content"`  // 文章全文
+	Question  string `json:"question"` // 用户提问
 }

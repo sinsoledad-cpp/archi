@@ -20,6 +20,7 @@ require (
 	github.com/google/wire v0.7.0
 	github.com/gotomicro/redis-lock v0.0.3
 	github.com/hashicorp/golang-lru v1.0.2
+	github.com/joho/godotenv v1.5.1
 	github.com/lithammer/shortuuid/v4 v4.2.0
 	github.com/mojocn/base64Captcha v1.3.8
 	github.com/natefinch/lumberjack v2.0.0+incompatible
@@ -94,7 +95,6 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
