@@ -29,6 +29,13 @@ func InitAiProvider(factory *ai.AiFactory) *ai.AiProvider {
 	}
 	provider.Register(domain.SceneArticleQA, qaRunnable)
 
+	// 场景：创作者 AI 助手 (Agent 模式)
+	authorHelperRunnable, err := factory.Create(domain.SceneAuthorHelper)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create ai scene %s: %v", domain.SceneAuthorHelper, err))
+	}
+	provider.Register(domain.SceneAuthorHelper, authorHelperRunnable)
+
 	return provider
 }
 

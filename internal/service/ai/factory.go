@@ -2,11 +2,14 @@ package ai
 
 import (
 	"archi/internal/domain"
+	"archi/internal/repository"
+	"archi/internal/service"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 
+	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
@@ -15,10 +18,18 @@ import (
 // AiFactory 负责根据场景构建所有的 Eino 编排实例
 type AiFactory struct {
 	chatModel model.ToolCallingChatModel
+	artRepo   repository.ArticleRepository
+	rankSvc   service.RankingService
+	intrSvc   service.InteractiveService
 }
 
-func NewAiFactory(m model.ToolCallingChatModel) *AiFactory {
-	return &AiFactory{chatModel: m}
+func NewAiFactory(m model.ToolCallingChatModel, artRepo repository.ArticleRepository, rankSvc service.RankingService, intrSvc service.InteractiveService) *AiFactory {
+	return &AiFactory{
+		chatModel: m,
+		artRepo:   artRepo,
+		rankSvc:   rankSvc,
+		intrSvc:   intrSvc,
+	}
 }
 
 // Create 根据场景创建对应的编排链或图
@@ -29,8 +40,7 @@ func (f *AiFactory) Create(scene domain.Scene) (compose.Runnable[any, any], erro
 	case domain.SceneArticleQA:
 		return f.buildArticleQAChain()
 	case domain.SceneAuthorHelper:
-		// 未来扩展
-		return nil, fmt.Errorf("scene %s is not implemented yet", scene)
+		return f.buildAuthorHelperAgent()
 	default:
 		return nil, fmt.Errorf("unknown ai scene: %s", scene)
 	}
@@ -133,4 +143,163 @@ func (f *AiFactory) buildArticleQAChain() (compose.Runnable[any, any], error) {
 
 	// 2. 编译并返回
 	return chain.Compile(context.Background())
+}
+
+// buildAuthorHelperAgent 使用 Eino ADK 构建创作者助手 Agent
+func (f *AiFactory) buildAuthorHelperAgent() (compose.Runnable[any, any], error) {
+	const systemPrompt = `你是一位专业的“创作者 AI 助手”。
+你的目标是帮助创作者优化文章内容、提供创意建议或参考其历史写作风格。
+
+你可以使用的工具：
+1. get_article_content: 当你需要获取当前文章或某篇特定文章的全文时使用。
+2. search_author_articles: 当你需要参考作者的历史写作风格或查找其相关旧文时使用。
+3. get_hot_trends: 当创作者询问当前热门话题或需要灵感建议时使用。
+4. get_article_stats: 当创作者需要了解某篇文章的阅读、点赞等反馈数据时使用。
+
+工作流程：
+- 如果用户指令涉及“润色”、“续写”或“改写”当前文章，但你没有看到内容，请先调用 get_article_content。
+- 如果用户要求“模仿我的风格”或“参考我之前的文章”，请先调用 search_author_articles 查找相关文章。
+- 如果用户询问“最近什么火”或需要“选题建议”，请调用 get_hot_trends。
+- 始终以专业、鼓励且具有建设性的语气与创作者交流。`
+
+	// 1. 创建 ChatModelAgent
+	authorAgent, err := adk.NewChatModelAgent(context.Background(), &adk.ChatModelAgentConfig{
+		Name:        "AuthorHelper",
+		Description: "创作者 AI 助手，支持内容润色、风格模仿和自取内容",
+		Instruction: systemPrompt,
+		Model:       f.chatModel,
+		ToolsConfig: adk.ToolsConfig{
+			ToolsNodeConfig: compose.ToolsNodeConfig{
+				Tools: f.initAuthorTools(f.artRepo),
+			},
+		},
+		MaxIterations: 10,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ADK agent: %w", err)
+	}
+
+	// 2. 将 ADK Agent 封装为 compose.Runnable[any, any]
+	// 这里通过自定义结构体实现，以同时支持 Invoke 和 Stream
+	return &authorHelperRunnable{
+		agent: authorAgent,
+	}, nil
+}
+
+// authorHelperRunnable 封装 ADK Agent 为 Eino Runnable 接口
+type authorHelperRunnable struct {
+	agent adk.Agent
+}
+
+func (r *authorHelperRunnable) Invoke(ctx context.Context, input any, opts ...compose.Option) (any, error) {
+	qaInput, err := r.parseInput(input)
+	if err != nil {
+		return nil, err
+	}
+
+	userMsg := r.formatUserMsg(qaInput)
+	runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: r.agent})
+	iter := runner.Run(ctx, []adk.Message{{Role: schema.User, Content: userMsg}}, adk.WithSessionValues(map[string]any{
+		"article_id": qaInput.ArticleID,
+		"author_id":  qaInput.AuthorID,
+	}))
+
+	var finalContent string
+	for {
+		event, ok := iter.Next()
+		if !ok {
+			break
+		}
+		msg, _, err := adk.GetMessage(event)
+		if err == nil && msg.Content != "" {
+			finalContent = msg.Content
+		}
+	}
+	return finalContent, nil
+}
+
+func (r *authorHelperRunnable) Stream(ctx context.Context, input any, opts ...compose.Option) (*schema.StreamReader[any], error) {
+	qaInput, err := r.parseInput(input)
+	if err != nil {
+		return nil, err
+	}
+
+	userMsg := r.formatUserMsg(qaInput)
+	runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: r.agent})
+	iter := runner.Run(ctx, []adk.Message{{Role: schema.User, Content: userMsg}}, adk.WithSessionValues(map[string]any{
+		"article_id": qaInput.ArticleID,
+		"author_id":  qaInput.AuthorID,
+	}))
+
+	pipeReader, pipeWriter := schema.Pipe[any](10)
+	go func() {
+		defer pipeWriter.Close()
+		for {
+			event, ok := iter.Next()
+			if !ok {
+				break
+			}
+			msg, _, err := adk.GetMessage(event)
+			if err == nil && msg.Content != "" {
+				_ = pipeWriter.Send(msg.Content, nil)
+			}
+		}
+	}()
+
+	return pipeReader, nil
+}
+
+func (r *authorHelperRunnable) Collect(ctx context.Context, reader *schema.StreamReader[any], opts ...compose.Option) (any, error) {
+	// 简单的流聚合实现
+	defer reader.Close()
+	var finalContent string
+	for {
+		chunk, err := reader.Recv()
+		if err != nil {
+			break
+		}
+		if s, ok := chunk.(string); ok {
+			finalContent += s
+		}
+	}
+	return finalContent, nil
+}
+
+func (r *authorHelperRunnable) Transform(ctx context.Context, reader *schema.StreamReader[any], opts ...compose.Option) (*schema.StreamReader[any], error) {
+	// 简单的流转换实现：将流聚合后再调用 Invoke
+	content, err := r.Collect(ctx, reader, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	// 重新封装为流返回
+	pipeReader, pipeWriter := schema.Pipe[any](1)
+	go func() {
+		defer pipeWriter.Close()
+		_ = pipeWriter.Send(content, nil)
+	}()
+	return pipeReader, nil
+}
+func (r *authorHelperRunnable) parseInput(input any) (AuthorHelperInput, error) {
+	var qaInput AuthorHelperInput
+	switch v := input.(type) {
+	case AuthorHelperInput:
+		qaInput = v
+	case *AuthorHelperInput:
+		if v == nil {
+			return qaInput, fmt.Errorf("input is nil")
+		}
+		qaInput = *v
+	default:
+		return qaInput, fmt.Errorf("invalid input type: %T", input)
+	}
+	return qaInput, nil
+}
+
+func (r *authorHelperRunnable) formatUserMsg(input AuthorHelperInput) string {
+	userMsg := fmt.Sprintf("指令: %s\n当前文章ID: %d", input.Instruction, input.ArticleID)
+	if input.Content != "" {
+		userMsg += fmt.Sprintf("\n当前内容: %s", input.Content)
+	}
+	return userMsg
 }

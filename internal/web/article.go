@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
@@ -65,7 +66,16 @@ func (a *ArticleHandler) RegisterRoutes(e *gin.Engine) {
 	pub.GET("/:id/ai-summary", ginx.Wrap(a.GetAiSummary))
 	pub.POST("/:id/ai-qa", a.AnswerQA)
 
+	// 创作者专用 AI 助手 (Agent 模式)
+	g.POST("/author-helper", a.AuthorHelper)
+
 	g.GET("/hot", ginx.Wrap(a.GetHot))
+}
+
+type AuthorHelperReq struct {
+	ArticleID   int64  `json:"article_id"`
+	Content     string `json:"content"`
+	Instruction string `json:"instruction"`
 }
 
 type ArticleQAReq struct {
@@ -451,6 +461,79 @@ func (a *ArticleHandler) AnswerQA(ctx *gin.Context) {
 	}
 
 	// 结束标识
+	ctx.SSEvent("end", "done")
+	ctx.Writer.Flush()
+}
+
+// AuthorHelper 创作者 AI 助手 (Agent 模式, SSE 流式返回)
+func (a *ArticleHandler) AuthorHelper(ctx *gin.Context) {
+	// 1. 获取用户 Claims
+	val, ok := ctx.Get("user")
+	if !ok {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	uc, ok := val.(jwt.UserClaims)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// 2. 解析请求
+	var req AuthorHelperReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusOK, ginx.Result{
+			Code: errs.ArticleInvalidInput,
+			Msg:  "参数错误",
+		})
+		return
+	}
+
+	// 3. 调用 AI Service 获取 Agent 流
+	reader, err := a.aiSvc.AuthorHelperStream(ctx, ai.AuthorHelperInput{
+		ArticleID:   req.ArticleID,
+		AuthorID:    uc.Uid,
+		Content:     req.Content,
+		Instruction: req.Instruction,
+	})
+	if err != nil {
+		a.l.Error("启动 AI 创作助手失败", logger.Error(err))
+		ctx.JSON(http.StatusOK, ginx.Result{
+			Code: errs.AiServiceError,
+			Msg:  "AI 助手暂不可用",
+		})
+		return
+	}
+	defer reader.Close()
+
+	// 4. 设置 SSE 响应头
+	ctx.Header("Content-Type", "text/event-stream")
+	ctx.Header("Cache-Control", "no-cache")
+	ctx.Header("Connection", "keep-alive")
+	ctx.Header("Transfer-Encoding", "chunked")
+
+	// 5. 循环读取并发送
+	for {
+		chunk, err := reader.Recv()
+		if err != nil {
+			break
+		}
+
+		// ReAct Agent 的输出 chunk 可能是 *schema.Message (最终回答)
+		// 或者是工具调用信息 (中间思考过程)
+		// 这里简单处理，提取文本内容发送
+		switch v := chunk.(type) {
+		case string:
+			ctx.SSEvent("message", v)
+		case *schema.Message:
+			ctx.SSEvent("message", v.Content)
+		default:
+			// 其他类型的 chunk (如中间思考) 也可以发送给前端显示
+			// ctx.SSEvent("thought", fmt.Sprintf("%v", v))
+		}
+		ctx.Writer.Flush()
+	}
+
 	ctx.SSEvent("end", "done")
 	ctx.Writer.Flush()
 }

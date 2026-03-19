@@ -61,7 +61,7 @@ func InitApp() *App {
 	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, localRankingCache)
 	rankingService := service.NewBatchRankingService(interactiveService, articleService, rankingRepository)
 	toolCallingChatModel := ioc.InitVolcanoModel()
-	aiFactory := ai.NewAiFactory(toolCallingChatModel)
+	aiFactory := ai.NewAiFactory(toolCallingChatModel, articleRepository, rankingService, interactiveService)
 	aiProvider := ioc.InitAiProvider(aiFactory)
 	aiCache := cache.NewRedisAiCache(cmdable)
 	aiRepository := repository.NewCachedAiRepository(aiCache)

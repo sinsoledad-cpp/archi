@@ -14,6 +14,8 @@ type AiService interface {
 	GetArticleSummary(ctx context.Context, art domain.Article) (domain.ArticleSummary, error)
 	// AnswerQuestionStream 支持流式返回，提供“打字机”效果
 	AnswerQuestionStream(ctx context.Context, artId int64, content string, question string) (*schema.StreamReader[any], error)
+	// AuthorHelperStream 创作者助手 Agent 流式入口
+	AuthorHelperStream(ctx context.Context, input AuthorHelperInput) (*schema.StreamReader[any], error)
 }
 
 type aiService struct {
@@ -79,5 +81,18 @@ func (s *aiService) AnswerQuestionStream(ctx context.Context, artId int64, conte
 	}
 
 	// 3. 调用流式执行接口
+	return runnable.Stream(ctx, input)
+}
+
+// AuthorHelperStream 创作者助手 Agent 入口
+func (s *aiService) AuthorHelperStream(ctx context.Context, input AuthorHelperInput) (*schema.StreamReader[any], error) {
+	// 1. 获取 Agent 执行器
+	runnable := s.provider.Get(domain.SceneAuthorHelper)
+	if runnable == nil {
+		return nil, fmt.Errorf("ai scene %s is not registered", domain.SceneAuthorHelper)
+	}
+
+	// 2. 调用流式执行接口
+	// ADK Agent 的流会包含 Thought 和 ToolCall 消息，建议在 Web 层进行过滤或全量下发
 	return runnable.Stream(ctx, input)
 }
